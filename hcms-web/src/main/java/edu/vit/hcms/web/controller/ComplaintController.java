@@ -66,8 +66,17 @@ public class ComplaintController {
         List<Complaint> complaints = complaintManager.getStudentComplaints(studentId, page, size);
 
         List<Map<String, Object>> result = complaints.stream()
-                .peek(c -> c.setAllowedActions(ComplaintActionPolicy.allowedActions(Role.STUDENT, c)))
+                .peek(c -> c.setAllowedActions(ComplaintActionPolicy.allowedActions(Role.STUDENT, studentId, c)))
                 .map(this::toMap)
+                .peek(m -> {
+                    String cid = (String) m.get("complaintId");
+                    if (Boolean.TRUE.equals(m.get("feedbackGiven"))) {
+                        supportDao.findFeedbackByComplaintId(cid).ifPresent(f -> {
+                            m.put("feedbackRating", f.getRating());
+                            m.put("feedbackComment", f.getComment());
+                        });
+                    }
+                })
                 .collect(Collectors.toList());
 
         ctx.json(Map.of("complaints", result, "page", page, "size", size));
@@ -79,10 +88,11 @@ public class ComplaintController {
         Complaint complaint = complaintManager.getComplaint(id);
 
         String roleStr = ctx.attribute("role");
+        Long currentUserId = ctx.attribute("userId");
         Role role = roleStr != null ? Role.valueOf(roleStr) : Role.STUDENT;
         boolean hasFeedback = supportDao.findFeedbackByComplaintId(id).isPresent();
         complaint.setFeedbackGiven(hasFeedback);
-        complaint.setAllowedActions(ComplaintActionPolicy.allowedActions(role, complaint));
+        complaint.setAllowedActions(ComplaintActionPolicy.allowedActions(role, currentUserId, complaint));
 
         Map<String, Object> response = toMap(complaint);
 
@@ -107,6 +117,8 @@ public class ComplaintController {
             fb.put("comment", f.getComment());
             fb.put("createdAt", f.getCreatedAt().toString());
             response.put("feedback", fb);
+            response.put("feedbackRating", f.getRating());
+            response.put("feedbackComment", f.getComment());
         });
 
         // Include comments

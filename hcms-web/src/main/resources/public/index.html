@@ -471,6 +471,76 @@
             </div>
         </section>
 
+        <!-- History View (All Roles: Student, Staff, Admin) -->
+        <section id="historyView" class="container" style="display:none;">
+            <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
+                <div>
+                    <h2 id="historyViewTitle">Complaint History &amp; Audit Trail</h2>
+                    <p class="text-muted" id="historyViewSubtitle" style="font-size:0.9rem; margin-top:4px;">
+                        Full lifecycle audit records, resolution timelines, and student feedback
+                    </p>
+                </div>
+                <div id="historyActions" style="display:flex; gap:10px; align-items:center;"></div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="analytics-grid" id="historyStatsGrid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <h4>Total Records</h4>
+                    <p class="stat-value" id="historyTotalCount">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Active / In Progress</h4>
+                    <p class="stat-value text-amber" id="historyOpenCount">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Resolved</h4>
+                    <p class="stat-value text-teal" id="historyResolvedCount">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Closed</h4>
+                    <p class="stat-value text-grey" id="historyClosedCount">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Avg Rating</h4>
+                    <p class="stat-value" id="historyAvgRating">-</p>
+                </div>
+            </div>
+
+            <!-- Filter Toolbar -->
+            <div class="triage-toolbar" style="margin-bottom: 20px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                <div class="toolbar-search-wrap" style="flex: 1; min-width: 240px;">
+                    <input type="text" id="historySearchInput" placeholder="Search by ID, keyword, description, student, staff..." class="toolbar-search">
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <select id="historyCategoryFilter" style="padding: 9px 12px; border: 2px solid var(--border-color); border-radius: 4px; font-weight: 600; background: var(--white); font-size: 0.85rem;">
+                        <option value="">All Categories</option>
+                        <option value="ELECTRICAL">Electrical</option>
+                        <option value="PLUMBING">Plumbing</option>
+                        <option value="WIFI">Wi-Fi</option>
+                        <option value="AC">AC</option>
+                        <option value="CARPENTRY">Carpentry</option>
+                        <option value="CLEANING">Cleaning</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <select id="historyStatusFilter" style="padding: 9px 12px; border: 2px solid var(--border-color); border-radius: 4px; font-weight: 600; background: var(--white); font-size: 0.85rem;">
+                        <option value="">All Statuses</option>
+                        <option value="NEW">New</option>
+                        <option value="ASSIGNED">Assigned</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="CLOSED">Closed</option>
+                        <option value="REOPENED">Reopened</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Complaints List -->
+            <div id="historyComplaintsList" class="complaints-list">
+                <div class="loading">Loading history...</div>
+            </div>
+        </section>
+
         <!-- New Complaint Modal (Centered Dialog) -->
         <div id="newComplaintModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalNewComplaintTitle">
             <div class="modal-overlay" id="newComplaintOverlay"></div>

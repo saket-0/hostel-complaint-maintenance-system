@@ -180,6 +180,29 @@ class ComplaintActionPolicyTest {
     }
 
     @Test
+    @DisplayName("Ownership enforcement: non-owner student receives VIEW only")
+    void testOwnershipEnforcement() {
+        Complaint resolved = createComplaint(ComplaintStatus.RESOLVED, 201L, LocalDateTime.now(), false);
+        // Owner student (101L) gets feedback, reopen, close
+        List<String> ownerActions = ComplaintActionPolicy.allowedActions(Role.STUDENT, 101L, resolved);
+        assertTrue(ownerActions.contains(ComplaintActionPolicy.ACTION_GIVE_FEEDBACK));
+        assertTrue(ownerActions.contains(ComplaintActionPolicy.ACTION_CLOSE));
+        assertTrue(ownerActions.contains(ComplaintActionPolicy.ACTION_REOPEN));
+
+        // Non-owner student (999L) gets VIEW only
+        List<String> nonOwnerActions = ComplaintActionPolicy.allowedActions(Role.STUDENT, 999L, resolved);
+        assertEquals(List.of(ComplaintActionPolicy.ACTION_VIEW), nonOwnerActions);
+        assertFalse(nonOwnerActions.contains(ComplaintActionPolicy.ACTION_GIVE_FEEDBACK));
+        assertFalse(nonOwnerActions.contains(ComplaintActionPolicy.ACTION_CLOSE));
+        assertFalse(nonOwnerActions.contains(ComplaintActionPolicy.ACTION_REOPEN));
+
+        // Staff (201L) on resolved complaint gets VIEW only - never feedback or close
+        List<String> staffActions = ComplaintActionPolicy.allowedActions(Role.STAFF, 201L, resolved);
+        assertEquals(List.of(ComplaintActionPolicy.ACTION_VIEW), staffActions);
+        assertFalse(staffActions.contains(ComplaintActionPolicy.ACTION_GIVE_FEEDBACK));
+    }
+
+    @Test
     @DisplayName("Null handling produces empty list")
     void testNullHandling() {
         assertTrue(ComplaintActionPolicy.allowedActions(null, null).isEmpty());

@@ -14,11 +14,24 @@ let currentRole = null;
 
 export async function initHistoryView(role) {
     currentRole = role;
+    const titleEl = document.getElementById('historyViewTitle');
+    const subtitleEl = document.getElementById('historyViewSubtitle');
     const listEl = document.getElementById('historyComplaintsList');
     const actionsEl = document.getElementById('historyActions');
     const searchInput = document.getElementById('historySearchInput');
     const catFilter = document.getElementById('historyCategoryFilter');
     const statusFilter = document.getElementById('historyStatusFilter');
+
+    if (role === 'STUDENT') {
+        if (titleEl) titleEl.textContent = 'My Complaint History';
+        if (subtitleEl) subtitleEl.textContent = 'Search and inspect all your past submitted complaints, status updates, and feedback';
+    } else if (role === 'STAFF') {
+        if (titleEl) titleEl.textContent = 'My Completed Work & Task History';
+        if (subtitleEl) subtitleEl.textContent = 'Review all maintenance tasks you have accepted and resolved, along with student ratings';
+    } else if (role === 'ADMIN') {
+        if (titleEl) titleEl.textContent = 'Institution Complaint & Audit History';
+        if (subtitleEl) subtitleEl.textContent = 'Comprehensive historical records across all hostel blocks with full audit trail logs and CSV export';
+    }
 
     if (!listEl) return;
     listEl.innerHTML = '<div class="loading">Loading historical records...</div>';
@@ -33,7 +46,7 @@ export async function initHistoryView(role) {
             if (exportBtn) {
                 exportBtn.onclick = async () => {
                     try {
-                        const csv = await apiRequest('/admin/export.csv', { headers: { 'Accept': 'text/csv' } });
+                        const csv = await apiRequest('/admin/export-audit.csv', { headers: { 'Accept': 'text/csv' } });
                         const blob = new Blob([csv], { type: 'text/csv' });
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
@@ -64,7 +77,7 @@ export async function initHistoryView(role) {
             const data = await apiRequest('/staff/tasks/history');
             allHistoryItems = (data && data.tasks) || [];
         } else if (role === 'ADMIN') {
-            const data = await apiRequest('/admin/complaints?size=100');
+            const data = await apiRequest('/admin/complaints?size=200');
             allHistoryItems = (data && data.complaints) || [];
         }
 
@@ -167,9 +180,19 @@ function renderFilteredHistory() {
 
     // Bind modal click events
     listEl.querySelectorAll('.btn-view-history').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
             const id = btn.getAttribute('data-id');
             openComplaintModal(id);
+        };
+    });
+
+    listEl.querySelectorAll('.history-card').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.onclick = (e) => {
+            if (e.target.closest('button')) return;
+            const btn = card.querySelector('.btn-view-history');
+            if (btn) openComplaintModal(btn.getAttribute('data-id'));
         };
     });
 }

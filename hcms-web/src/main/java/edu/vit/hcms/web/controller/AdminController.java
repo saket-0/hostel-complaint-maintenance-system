@@ -167,6 +167,12 @@ public class AdminController {
             if (c.getStaffId() != null && !m.containsKey("staffName")) {
                 userCache.computeIfAbsent(c.getStaffId(), userDao::findById).ifPresent(u -> m.put("staffName", u.getName()));
             }
+            if (c.isFeedbackGiven()) {
+                supportDao.findFeedbackByComplaintId(c.getComplaintId()).ifPresent(f -> {
+                    m.put("feedbackRating", f.getRating());
+                    m.put("feedbackComment", f.getComment());
+                });
+            }
             return m;
         }).collect(Collectors.toList());
 

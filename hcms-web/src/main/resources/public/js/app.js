@@ -7,14 +7,15 @@ import { showToast } from './toast.js';
 import { initStudentView } from './student.js';
 import { initAdminView } from './admin.js';
 import { initStaffView } from './staff.js';
+import { initHistoryView } from './history.js';
 import { initNotifications, stopNotificationPolling } from './notifications.js';
 import { initMetricsFooter } from './metrics.js';
 import { getIcon } from './icons.js';
 
 const ROLE_ROUTES = {
-    STUDENT: ['#/mine', '#/new'],
-    STAFF: ['#/tasks', '#/completed'],
-    ADMIN: ['#/triage', '#/complaints', '#/analytics', '#/staff']
+    STUDENT: ['#/mine', '#/new', '#/history'],
+    STAFF: ['#/tasks', '#/completed', '#/history'],
+    ADMIN: ['#/triage', '#/complaints', '#/analytics', '#/staff', '#/history']
 };
 
 const DEFAULT_ROUTE = {
@@ -190,12 +191,14 @@ async function handleRoute() {
     const studentDash = document.getElementById('studentDashboard');
     const adminDash = document.getElementById('adminDashboard');
     const staffDash = document.getElementById('staffDashboard');
+    const historyView = document.getElementById('historyView');
     const navLinks = document.getElementById('navLinks');
 
     // Hide all main containers
     if (studentDash) studentDash.style.display = 'none';
     if (adminDash) adminDash.style.display = 'none';
     if (staffDash) staffDash.style.display = 'none';
+    if (historyView) historyView.style.display = 'none';
 
     // Unauthenticated routes
     if (!user || hash === '#/login' || hash === '#/register') {
@@ -235,7 +238,10 @@ async function handleRoute() {
     initNotifications();
 
     // Render corresponding view
-    if (user.role === 'STUDENT') {
+    if (hash === '#/history') {
+        if (historyView) historyView.style.display = 'block';
+        initHistoryView(user.role);
+    } else if (user.role === 'STUDENT') {
         if (studentDash) studentDash.style.display = 'block';
         initStudentView(hash === '#/new');
     } else if (user.role === 'STAFF') {
@@ -271,16 +277,19 @@ function renderNavLinks(role, activeHash, container) {
         linksHtml = `
             <a href="#/mine" class="nav-link ${activeHash === '#/mine' ? 'active' : ''}">${getIcon('clipboard', 'nav-icon', 15)} My Complaints</a>
             <a href="#/new" class="nav-link ${activeHash === '#/new' ? 'active' : ''}">${getIcon('plus', 'nav-icon', 15)} New Complaint</a>
+            <a href="#/history" class="nav-link ${activeHash === '#/history' ? 'active' : ''}">${getIcon('history', 'nav-icon', 15)} History</a>
         `;
     } else if (role === 'STAFF') {
         linksHtml = `
             <a href="#/tasks" class="nav-link ${activeHash === '#/tasks' ? 'active' : ''}">${getIcon('wrench', 'nav-icon', 15)} My Tasks</a>
             <a href="#/completed" class="nav-link ${activeHash === '#/completed' ? 'active' : ''}">${getIcon('check', 'nav-icon', 15)} Completed</a>
+            <a href="#/history" class="nav-link ${activeHash === '#/history' ? 'active' : ''}">${getIcon('history', 'nav-icon', 15)} Task History</a>
         `;
     } else if (role === 'ADMIN') {
         linksHtml = `
             <a href="#/triage" class="nav-link ${activeHash === '#/triage' ? 'active' : ''}">${getIcon('clipboard', 'nav-icon', 15)} Triage</a>
             <a href="#/complaints" class="nav-link ${activeHash === '#/complaints' ? 'active' : ''}">${getIcon('chart', 'nav-icon', 15)} All Complaints</a>
+            <a href="#/history" class="nav-link ${activeHash === '#/history' ? 'active' : ''}">${getIcon('history', 'nav-icon', 15)} Audit History</a>
             <a href="#/analytics" class="nav-link ${activeHash === '#/analytics' ? 'active' : ''}">${getIcon('chart', 'nav-icon', 15)} Analytics</a>
             <a href="#/staff" class="nav-link ${activeHash === '#/staff' ? 'active' : ''}">${getIcon('users', 'nav-icon', 15)} Staff</a>
         `;

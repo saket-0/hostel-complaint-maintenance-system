@@ -493,25 +493,25 @@ function renderComplaintDetail(c, history, comments) {
 
     const allowed = c.allowedActions || [];
 
-    // Action buttons: driven by server allowedActions
+    // Action buttons: driven by server allowedActions AND role guards
     let actionButtons = '';
     const actionList = [];
-    if (allowed.includes('CLOSE')) {
+    if (allowed.includes('CLOSE') && (isOwnerStudent || isAdmin)) {
         actionList.push('<button class="btn btn-teal btn-sm" id="btnActionClose">Close Complaint</button>');
     }
-    if (allowed.includes('REOPEN')) {
+    if (allowed.includes('REOPEN') && (isOwnerStudent || isAdmin)) {
         actionList.push('<button class="btn btn-amber btn-sm" id="btnActionReopen">Reopen Complaint</button>');
     }
-    if (allowed.includes('ACCEPT')) {
+    if (allowed.includes('ACCEPT') && isStaff) {
         actionList.push(`<button class="btn btn-primary btn-sm" id="btnActionAccept" data-id="${c.complaintId}">Accept Task</button>`);
     }
-    if (allowed.includes('RESOLVE')) {
+    if (allowed.includes('RESOLVE') && isStaff) {
         actionList.push(`<button class="btn btn-teal btn-sm" id="btnActionResolve" data-id="${c.complaintId}">Mark as Resolved</button>`);
     }
-    if (allowed.includes('ASSIGN')) {
+    if (allowed.includes('ASSIGN') && isAdmin) {
         actionList.push(`<button class="btn btn-primary btn-sm" id="btnActionAssign" data-id="${c.complaintId}" data-cat="${c.category}">Assign Staff</button>`);
     }
-    if (allowed.includes('REASSIGN')) {
+    if (allowed.includes('REASSIGN') && isAdmin) {
         actionList.push(`<button class="btn btn-outline btn-sm" id="btnActionReassign" data-id="${c.complaintId}" data-cat="${c.category}">Reassign Staff</button>`);
     }
     if (actionList.length > 0) {
@@ -520,7 +520,7 @@ function renderComplaintDetail(c, history, comments) {
 
     // Feedback section:
     // If feedback exists: EVERYONE (Student, Staff, Admin) can view it
-    // If GIVE_FEEDBACK in allowedActions: render interactive feedback form
+    // If GIVE_FEEDBACK in allowedActions AND user is the owner student: render interactive feedback form
     // Staff & Admin see a polite waiting note when awaiting review
     let feedbackSection = '';
     if (hasFeedback) {
@@ -531,7 +531,7 @@ function renderComplaintDetail(c, history, comments) {
                 <p><strong>Comment:</strong> ${escapeHtml(feedbackComment || 'No comment provided')}</p>
             </div>
         `;
-    } else if (allowed.includes('GIVE_FEEDBACK')) {
+    } else if (isOwnerStudent && isResolved && allowed.includes('GIVE_FEEDBACK')) {
         feedbackSection = `
             <div class="card" style="margin-top: 15px; background: #eef9fc; border: 2px solid var(--border-color); box-shadow: 2px 2px 0 var(--border-color);">
                 <h4>Provide Feedback</h4>
@@ -554,7 +554,7 @@ function renderComplaintDetail(c, history, comments) {
                 </form>
             </div>
         `;
-    } else if (isResolved && (isStaff || isAdmin)) {
+    } else if (isResolved && (isStaff || isAdmin || (!isOwnerStudent && isStudent))) {
         feedbackSection = `
             <div style="margin-top: 14px; padding: 10px 14px; background: #F8FAFC; border: 1.5px dashed var(--border-color); font-size: 0.85rem; color: var(--grey);">
                 <em>Awaiting student review and feedback.</em>

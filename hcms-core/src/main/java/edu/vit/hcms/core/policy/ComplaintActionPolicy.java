@@ -66,6 +66,19 @@ public final class ComplaintActionPolicy {
      * @return an unmodifiable list of allowed action identifiers
      */
     public static List<String> allowedActions(Role role, Complaint complaint) {
+        return allowedActions(role, null, complaint);
+    }
+
+    /**
+     * Determines the allowed actions for a specific user ID and role on a complaint.
+     * Restricts feedback submission and closing/reopening strictly to the owner student.
+     *
+     * @param role the authenticated user's role
+     * @param userId the authenticated user's ID (nullable)
+     * @param complaint the complaint being inspected
+     * @return an unmodifiable list of allowed action identifiers
+     */
+    public static List<String> allowedActions(Role role, Long userId, Complaint complaint) {
         if (role == null || complaint == null || complaint.getStatus() == null) {
             return Collections.emptyList();
         }
@@ -86,7 +99,9 @@ public final class ComplaintActionPolicy {
                 actions.add(ACTION_VIEW);
             }
             case STUDENT -> {
-                if (status == ComplaintStatus.RESOLVED) {
+                // When userId is provided, strictly enforce that only the owner student can close/reopen/feedback
+                boolean isOwner = (userId == null || userId.equals(complaint.getStudentId()));
+                if (status == ComplaintStatus.RESOLVED && isOwner) {
                     if (!complaint.isFeedbackGiven()) {
                         actions.add(ACTION_GIVE_FEEDBACK);
                     }
@@ -98,10 +113,13 @@ public final class ComplaintActionPolicy {
                 actions.add(ACTION_VIEW);
             }
             case STAFF -> {
-                if (status == ComplaintStatus.ASSIGNED) {
-                    actions.add(ACTION_ACCEPT);
-                } else if (status == ComplaintStatus.IN_PROGRESS || status == ComplaintStatus.REOPENED) {
-                    actions.add(ACTION_RESOLVE);
+                boolean isAssigned = (userId == null || userId.equals(complaint.getStaffId()));
+                if (isAssigned) {
+                    if (status == ComplaintStatus.ASSIGNED) {
+                        actions.add(ACTION_ACCEPT);
+                    } else if (status == ComplaintStatus.IN_PROGRESS || status == ComplaintStatus.REOPENED) {
+                        actions.add(ACTION_RESOLVE);
+                    }
                 }
                 actions.add(ACTION_VIEW);
             }
