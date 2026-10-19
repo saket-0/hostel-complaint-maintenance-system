@@ -3,7 +3,7 @@
 -- All passwords are BCrypt hash of 'password123'
 
 -- BCrypt hash of 'password123'
-SET @pwd = '$2a$12$LJ3m4ys3uz3YCE3hMYBJaeGSLih1vGjhRzQBlqYK5gJNW5p52OKMC';
+SET @pwd = '$2a$12$7f8SSpbLSfJGaXvNRMODLuu6jSoCH9QJvkHWSVMfxema4J5Bp3H66';
 
 -- ============ ADMIN ============
 INSERT INTO users (name, email, password_hash, role, active) VALUES

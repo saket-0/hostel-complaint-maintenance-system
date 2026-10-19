@@ -228,6 +228,8 @@ public class HcmsApplication {
             authFilter.requireAuth(ctx);
             notificationController.markAsRead(ctx);
         });
+        app.get("/health", healthController::health);
+        app.get("/metrics-lite", healthController::metrics);
         app.get("/api/v1/health", healthController::health);
         app.get("/api/v1/metrics-lite", healthController::metrics);
 
