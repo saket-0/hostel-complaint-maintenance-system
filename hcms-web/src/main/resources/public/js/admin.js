@@ -554,7 +554,7 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
                     <a href="#" class="complaint-link font-mono" data-id="${c.complaintId}">${escapeHtml(c.complaintId)}</a>
                 </td>
                 <td data-label="Priority">
-                    <span class="badge ${pClass}">${escapeHtml(pLabel)}</span>
+                    <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
                 </td>
                 <td data-label="Category">${escapeHtml(c.categoryDisplay || c.category)}</td>
                 <td data-label="Description" style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.description)}">

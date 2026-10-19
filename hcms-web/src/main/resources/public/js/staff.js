@@ -106,7 +106,7 @@ export async function loadStaffTasks(isCompleted = false) {
                 <div class="complaint-card-header">
                     <span class="complaint-id font-mono">${escapeHtml(task.complaintId)}</span>
                     <div class="complaint-meta">
-                        <span class="badge ${pClass}">${escapeHtml(pLabel)}</span>
+                        <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
                         <span class="status-badge status-${task.status}">${escapeHtml(task.statusDisplay || task.status)}</span>
                         ${isOverdue}
                     </div>

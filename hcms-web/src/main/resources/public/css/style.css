@@ -462,16 +462,22 @@ a:hover {
 
 .priority-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 4px 10px;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    border: 1.5px solid var(--border-color);
+    text-transform: uppercase;
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--border-color);
+    white-space: nowrap;
 }
 
-.priority-HIGH { background-color: #FEE2E2; color: #991B1B; }
-.priority-MEDIUM { background-color: #FEF3C7; color: #92400E; }
-.priority-LOW { background-color: #D1FAE5; color: #065F46; }
+.priority-HIGH,
+.priority-high { background-color: #FEE2E2; color: #991B1B; }
+.priority-MEDIUM,
+.priority-medium { background-color: #FEF3C7; color: #92400E; }
+.priority-LOW,
+.priority-low { background-color: #D1FAE5; color: #065F46; }
 
 .overdue-badge {
     background-color: var(--red);
