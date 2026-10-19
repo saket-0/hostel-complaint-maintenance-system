@@ -16,7 +16,7 @@
 - **DAOs & DB Access**: `hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/` (`ComplaintDao.java`, `UserDao.java`, `SupportDao.java`)
 - **REST Controllers**: `hcms-web/src/main/java/edu/vit/hcms/web/controller/{Admin,Auth,Complaint,Health,Notification,Staff}Controller.java`
 - **Frontend JavaScript**: `hcms-web/src/main/resources/public/js/{admin,api,app,auth,dates,history,icons,metrics,notifications,staff,student,toast}.js`
-- **Frontend Entry & UI**: `hcms-web/src/main/resources/public/index.html` & `css/style.css`
+- **Frontend Entry & UI**: `hcms-web/src/main/resources/public/index.html` & `hcms-web/src/main/resources/public/css/style.css`
 - **DB Migrations**: `hcms-persistence/src/main/resources/db/migration/` (`V1__create_schema.sql`, `V2__seed_data.sql`)
 
 ---
@@ -56,6 +56,7 @@ Always restrict task scope to the layer where the change belongs:
 | **All modules (compile only)** | `./quick.sh check` | `make quick-compile` |
 | **Single test class** | `./quick.sh test <TestClass>` | `make quick-test test=<TestClass>` |
 | **Single test in module** | `./quick.sh test <TestClass> <module>` | `mvn -q -pl hcms-<module> -am test -Dtest=<TestClass> -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true` |
+| **Documentation sync** | `./quick.sh docs` | `make quick-docs` |
 
 ---
 

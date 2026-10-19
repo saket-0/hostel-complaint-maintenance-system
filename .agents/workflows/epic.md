@@ -8,8 +8,13 @@ Use for: architecture changes, new modules, DB redesigns, cross-layer features, 
 
 ## Step 1: Bounded discovery (this is the one time wide reading is allowed)
 - Read docs/CODEMAP.md, AGENTS.md, README.md section 2 (architecture).
+- Read docs/LESSONS.md.
+- Read docs/WORKFLOWS.md section 5 so phases follow the shared contract.
 - Use grep/ripgrep for symbols tied to the request. Budget: max 12 file opens, line ranges only.
 - Record what you learned in the plan so no later session re-explores.
+
+## Step 1b: Sizing gate
+If discovery shows the work is S or M (at most 4 files, no DB/state/core change), do NOT write a plan. Tell the user in one line to run /do with the same request, and stop.
 
 ## Step 2: Write docs/plans/<kebab-slug>/PLAN.md with these sections
 1. **Goal**: 2-3 lines, plus measurable success criteria.
@@ -19,8 +24,10 @@ Use for: architecture changes, new modules, DB redesigns, cross-layer features, 
 5. **Decisions & assumptions**: choices made, alternatives rejected, one line each.
 6. **Phases**: ordered checklist. Every phase must be size S or M, leave the build green, and have:
    - `[ ] P<n> <title>`
+   - `Type: UI | ENDPOINT | LOGIC | DB | STATE | TEST | INFRA | DOCS`
    - Files to touch (paths)
    - Do: bullet list, max 5
+   - `Docs: <exact doc files this phase must update, per the Doc sync table>`
    - Verify: exact ./quick.sh command (plus any manual check)
    - Rollback: how to undo (usually `git revert` of the phase commit)
 7. **Risks**: top 3 and mitigation.
@@ -28,6 +35,8 @@ Use for: architecture changes, new modules, DB redesigns, cross-layer features, 
 9. Header fields: `branch: epic/<slug>`, `auto-commit: no`.
 
 ## Phase design rules
+Docs are updated in the same phase as the change that requires them, not deferred. The final phase is a doc audit: run ./quick.sh docs and ./gen-codemap.sh, and reconcile README, DESIGN.md, API.md, AGENTS.md and WORKFLOWS.md against the finished state.
+
 ARCHITECTURE / BACKEND changes:
 - P1 is always a safety net: characterization tests for the behavior about to change.
 - Use expand/contract: add the new thing alongside the old, migrate callers, then remove the old in a final phase. Never big-bang.

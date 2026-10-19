@@ -1,38 +1,55 @@
 # HCMS Workspace Guide & Agent Rules
 
-## Architecture (One-Way Dependencies)
-`hcms-web` -> `hcms-service` -> `hcms-persistence` -> `hcms-core`
-- **hcms-core**: Domain models, enums, interfaces, exceptions. No framework or JDBC imports.
-- **hcms-persistence**: JDBC DAOs, HikariCP (`DatabaseManager`), Flyway migrations.
-- **hcms-service**: Business logic (`ComplaintManager`), SLA engine, assignment strategies, notifications.
-- **hcms-web**: Javalin controllers, filters, DTOs, static SPA frontend.
+## Architecture (web -> service -> persistence -> core)
+- **core**: Models, enums, interfaces, exceptions. No framework/JDBC imports.
+- **persistence**: JDBC DAOs, HikariCP (`DatabaseManager`), Flyway migrations.
+- **service**: Business logic (`ComplaintManager`), SLA engine, strategies, notifications.
+- **web**: Javalin controllers, filters, DTOs, static SPA.
 
 ## Where Things Live (Verified Paths)
-- **Complaint Business Logic**: `hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`
-- **Status State Machine**: `hcms-core/src/main/java/edu/vit/hcms/core/enums/ComplaintStatus.java`
-- **Auto-Assignment Strategies**: `hcms-service/src/main/java/edu/vit/hcms/service/strategy/` (`SpecializationMatchStrategy.java`, `LeastWorkloadStrategy.java`)
-- **SLA & Escalation Engine**: `hcms-service/src/main/java/edu/vit/hcms/service/engine/SlaEscalationEngine.java`
-- **DAOs & DB Access**: `hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/` (`ComplaintDao.java`, `UserDao.java`, `SupportDao.java`)
-- **REST Controllers**: `hcms-web/src/main/java/edu/vit/hcms/web/controller/{Admin,Auth,Complaint,Health,Notification,Staff}Controller.java`
-- **Frontend JavaScript**: `hcms-web/src/main/resources/public/js/{admin,api,app,auth,dates,history,icons,metrics,notifications,staff,student,toast}.js`
-- **Frontend Entry & UI**: `hcms-web/src/main/resources/public/index.html` & `css/style.css`
-- **DB Migrations**: `hcms-persistence/src/main/resources/db/migration/` (`V1__create_schema.sql`, `V2__seed_data.sql`)
+- **Logic**: `hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`
+- **State Machine**: `hcms-core/src/main/java/edu/vit/hcms/core/enums/ComplaintStatus.java`
+- **Strategies**: `hcms-service/src/main/java/edu/vit/hcms/service/strategy/` (`SpecializationMatchStrategy.java`, `LeastWorkloadStrategy.java`)
+- **SLA Engine**: `hcms-service/src/main/java/edu/vit/hcms/service/engine/SlaEscalationEngine.java`
+- **DAOs**: `hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/` (`ComplaintDao.java`, `UserDao.java`, `SupportDao.java`)
+- **Controllers**: `hcms-web/src/main/java/edu/vit/hcms/web/controller/{Admin,Auth,Complaint,Health,Notification,Staff}Controller.java`
+- **Frontend JS**: `hcms-web/src/main/resources/public/js/{admin,api,app,auth,dates,history,icons,metrics,notifications,staff,student,toast}.js`
+- **Frontend UI**: `hcms-web/src/main/resources/public/index.html` & `hcms-web/src/main/resources/public/css/style.css`
+- **Migrations**: `hcms-persistence/src/main/resources/db/migration/` (`V1__create_schema.sql`, `V2__seed_data.sql`)
 
 ## Strict Reading & Execution Rules
-1. **Start by reading `docs/CODEMAP.md`**, not by listing directories or scanning the repository.
-2. **Find symbols with grep/ripgrep first**, then read only the needed line range. Never open a whole file over 300 lines unless editing most of it.
-3. **Never re-read a file already read in this conversation.**
-4. **Never edit applied Flyway migrations (`V1`, `V2`).** Add a new sequential `V{n}__*.sql`.
-5. **Never read or index**: `target/`, `logs/`, `node_modules/`, `chart.min.js`, `*.log`.
-6. **Cheap verification only**: Use `./quick.sh <module>` or `./quick.sh test <TestClass>`. Never run `mvn verify` or Testcontainers unless requested.
-7. **After a verification command passes, stop.** Do not re-run it or run broader suites.
-8. **Two-line declaration before editing**: State in 2 concise lines which files you will touch and why.
-9. **Never commit or push to git/GitHub** without explicit user permission.
-10. **Final reply**: Maximum 6 lines (files changed, what, verify result).
+1. **Start with `docs/CODEMAP.md`**; no broad scanning.
+2. **Grep symbols first**; read needed lines only (<300 lines).
+3. **Never re-read** files in same session.
+4. **Never edit applied migrations (`V1`, `V2`)**; add sequential `V{n}__*.sql`.
+5. **Never read**: `target/`, `logs/`, `node_modules/`, `chart.min.js`, `*.log`.
+6. **Cheap verification**: `./quick.sh <module|test>`.
+7. **Pass -> stop** immediately.
+8. **Two-line declaration before editing**: state files and why.
+9. **Never commit or push** without explicit permission.
+10. **Final reply**: max 6 lines ending with `Docs:` line.
 
-## Default behavior
-For any request that is not a pure question, follow .agents/workflows/do.md: triage, print the scope block, then execute. Skip the scope block only for trivial one-line edits in a file the user named. L-sized or architectural/redesign requests: do not execute. Tell the user in one line to run /epic with the same request, and stop.
+## Default behavior & Lessons
+For non-questions, follow `.agents/workflows/do.md`: triage, print scope block, execute. Skip scope block for trivial one-line edits in a named file. L-sized / architectural requests: tell user to run `/epic` and stop. Read `docs/LESSONS.md` before bug, DB, or concurrency tasks. Append learned gotchas to `docs/LESSONS.md`.
 
-## Lessons
-Read docs/LESSONS.md before any bug, DB, or concurrency task. After fixing a non-obvious problem, or after being corrected by the user, append one line to docs/LESSONS.md.
+## Workflow routing
+- Slash commands override `/do`. Router: general -> `/do`; bug -> `/bug`; locate/question -> `/find`; known file -> `/fix`; API -> `/endpoint`; UI -> `/ui`; L-sized/architecture -> `/epic`, then `/next`.
+- Delegation: `/do` dispatches by type (BUG -> `bug.md`, ENDPOINT -> `endpoint.md`, UI -> `ui.md`, QUESTION -> `find.md`; else self-executes). `/next` follows phase Type.
+- Workflow files don't count toward file limits. Fit: S/M -> follow in same chat; L -> stop and route to `/epic`. Escalation: `/fix`, `/bug`, `/endpoint`, `/ui` -> `/do` -> `/epic`.
+- Tools: browser tool only for visual check at end. Skills only on exact match.
 
+## Doc sync (Definition of Done)
+Doc updates never count toward file-open limits or the 2-file /fix guard. Only touch a doc if a row in the table below is actually triggered by this change. If none is triggered, write `Docs: none needed` and do nothing else. Editing wording, fixing a typo, changing CSS, or changing logic inside a method without changing its signature triggers NO doc update.
+| If you changed... | Update |
+| :--- | :--- |
+| Java or JS file added/renamed/deleted | run `./gen-codemap.sh`; fix moved paths in `AGENTS.md` and this rule |
+| REST endpoint, DTO, or error code | `docs/API.md` (and README feature text if user-visible) |
+| Architecture, patterns, concurrency, state machine, boundaries | `docs/DESIGN.md`, README sections 2-6 (diagrams, concepts), `AGENTS.md` |
+| DB schema or new migration | README ER diagram, `docs/DESIGN.md`, `AGENTS.md` migration list |
+| Verification or build scripts | `AGENTS.md` cheat sheet, `docs/WORKFLOWS.md` section 3, this rule |
+| Workflow or rule added/changed/removed | `docs/WORKFLOWS.md` (matrix, sec 5), routing block above |
+| Docker, ports, env vars, demo credentials | README sections 7, 8, 11, and `.env.example` |
+| Ignore rules | keep `.gitignore`, `.agentignore`, `.geminiignore` consistent; `chart.min.js` stays tracked |
+| Non-obvious gotcha learned / corrected by user | append one line to `docs/LESSONS.md` |
+
+Run `./quick.sh docs` only when a doc file was actually edited in this task, never otherwise. If it reports problems unrelated to this task, do not fix them; mention in one line in the final reply. Every final reply ends with `Docs: <files updated> | none needed`.

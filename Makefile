@@ -33,6 +33,9 @@ quick-test:
 	fi
 	./quick.sh test $(test)
 
+quick-docs:
+	./quick.sh docs
+
 package:
 	mvn package -DskipTests
 

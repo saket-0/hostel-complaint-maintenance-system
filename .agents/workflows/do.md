@@ -49,6 +49,9 @@ RISK:         none | <what could break>
 - QUESTION type: answer from CODEMAP and grep. Make no edits.
 - BUG type: state your top hypothesis and the single file/method to check first. If the cause is not found after 3 file opens, stop and report findings instead of widening the search.
 
+## Delegation
+After classifying, follow the matching workflow file instead of improvising: BUG -> bug.md, ENDPOINT -> endpoint.md, UI -> ui.md, QUESTION -> find.md. For DB, BUG or concurrency work, read docs/LESSONS.md first. Still print the scope block first. LOGIC, STATE, TEST, BUILD and DOCS are handled by /do itself.
+
 ## Phase 4: Execute
 
 - Do sub-tasks in order with the smallest possible diff. No refactors, reformatting, or unrelated cleanup.
@@ -60,5 +63,6 @@ RISK:         none | <what could break>
 
 - Run only the VERIFY command. If it passes, stop. Do not re-run it or run broader suites.
 - If it fails, fix at most twice, then report instead of looping.
+- Apply the Doc sync table from the rules. If docs changed, also run ./quick.sh docs. Final reply ends with the `Docs:` line.
 - Do not commit or push.
 - Final reply, max 6 lines: files changed, what changed, verify result, follow-ups.
