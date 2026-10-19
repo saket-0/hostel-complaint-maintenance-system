@@ -176,12 +176,14 @@ function renderFilteredHistory() {
 
 function updateHistoryStats(items) {
     const totalEl = document.getElementById('historyTotalCount');
+    const openEl = document.getElementById('historyOpenCount');
     const resolvedEl = document.getElementById('historyResolvedCount');
     const closedEl = document.getElementById('historyClosedCount');
     const ratingEl = document.getElementById('historyAvgRating');
 
     if (!items || items.length === 0) {
         if (totalEl) totalEl.textContent = '0';
+        if (openEl) openEl.textContent = '0';
         if (resolvedEl) resolvedEl.textContent = '0';
         if (closedEl) closedEl.textContent = '0';
         if (ratingEl) ratingEl.textContent = '—';
@@ -189,6 +191,7 @@ function updateHistoryStats(items) {
     }
 
     const total = items.length;
+    const open = items.filter(i => ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED'].includes(i.status)).length;
     const resolved = items.filter(i => i.status === 'RESOLVED').length;
     const closed = items.filter(i => i.status === 'CLOSED').length;
 
@@ -203,6 +206,7 @@ function updateHistoryStats(items) {
     });
 
     if (totalEl) totalEl.textContent = total;
+    if (openEl) openEl.textContent = open;
     if (resolvedEl) resolvedEl.textContent = resolved;
     if (closedEl) closedEl.textContent = closed;
     if (ratingEl) {

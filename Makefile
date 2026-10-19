@@ -11,6 +11,28 @@ test:
 verify:
 	mvn verify
 
+# Fast verification targets (for developer & AI agent quick checks, skipping containers)
+quick-compile:
+	./quick.sh check
+
+quick-core:
+	./quick.sh core
+
+quick-persistence:
+	./quick.sh persistence
+
+quick-service:
+	./quick.sh service
+
+quick-web:
+	./quick.sh web
+
+quick-test:
+	@if [ -z "$(test)" ]; then \
+		echo "Usage: make quick-test test=<TestClassName>"; exit 1; \
+	fi
+	./quick.sh test $(test)
+
 package:
 	mvn package -DskipTests
 

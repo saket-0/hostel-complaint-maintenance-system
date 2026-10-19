@@ -131,6 +131,7 @@ public class ComplaintManager {
             supportDao.saveHistory(history);
 
             txManager.commit();
+            lruCache.put(complaintId, complaint);
             log.info("Complaint registered: {} (category={}, priority={})", complaintId, category, priority);
             return complaint;
         } catch (Exception e) {
@@ -160,11 +161,26 @@ public class ComplaintManager {
         complaint.setStaffId(staffId);
         complaint.setStatus(ComplaintStatus.ASSIGNED);
 
+        String staffDesc = "staff " + staffId;
+        Optional<User> staffUser = userDao.findById(staffId);
+        if (staffUser.isPresent()) {
+            User u = staffUser.get();
+            if (u instanceof MaintenanceStaff ms) {
+                complaint.setAssignedStaffName(ms.getName());
+                complaint.setAssignedStaffSpecialization(ms.getSpecialization().getDisplayName());
+                staffDesc = ms.getName() + " (" + ms.getSpecialization().getRoleTitle() + ")";
+            } else {
+                complaint.setAssignedStaffName(u.getName());
+                staffDesc = u.getName();
+            }
+        }
+
         txManager.begin();
         try {
             complaintDao.update(complaint);
-            notifyListeners(complaint, oldStatus, ComplaintStatus.ASSIGNED, adminId, "Assigned to staff " + staffId);
+            notifyListeners(complaint, oldStatus, ComplaintStatus.ASSIGNED, adminId, "Assigned to " + staffDesc);
             txManager.commit();
+            lruCache.put(complaintId, complaint);
             return complaint;
         } catch (Exception e) {
             txManager.rollback();
@@ -179,6 +195,10 @@ public class ComplaintManager {
     public Complaint autoAssignComplaint(String complaintId, Long adminId) {
         Complaint complaint = complaintDao.findById(complaintId)
                 .orElseThrow(() -> new ResourceNotFoundException("Complaint", complaintId));
+
+        if (complaint.getStatus() != ComplaintStatus.NEW || complaint.getStaffId() != null) {
+            throw new InvalidStatusTransitionException(complaint.getStatus(), ComplaintStatus.ASSIGNED);
+        }
 
         List<MaintenanceStaff> availableStaff = userDao.findAllStaff(true);
         if (availableStaff.isEmpty()) {
@@ -224,6 +244,7 @@ public class ComplaintManager {
             complaintDao.update(complaint);
             notifyListeners(complaint, oldStatus, newStatus, changedBy, note);
             txManager.commit();
+            lruCache.put(complaintId, complaint);
             return complaint;
         } catch (Exception e) {
             txManager.rollback();
@@ -286,6 +307,7 @@ public class ComplaintManager {
         complaint.setDueBy(complaint.getCreatedDate().plusHours(slaHours));
 
         complaintDao.update(complaint);
+        lruCache.put(complaintId, complaint);
         log.info("Priority updated for {}: {} -> {}", complaintId, oldPriority, newPriority);
         return complaint;
     }
@@ -308,15 +330,20 @@ public class ComplaintManager {
 
     /**
      * Builds and returns the admin triage queue using a PriorityQueue.
-     * Orders open complaints primarily by urgency (Priority level 1=HIGH first),
-     * and secondarily by age (earlier createdDate first) using a Comparator chain.
+     * Orders open complaints by:
+     * 1. Unassigned or Reopened first (needs immediate assignment/attention)
+     * 2. Overdue complaints (past SLA due_by)
+     * 3. Priority level (HIGH=1 first)
+     * 4. Oldest age (earliest createdDate first)
      *
-     * @return a PriorityQueue containing all open complaints
+     * @return a PriorityQueue containing all open complaints in triage order
      */
     public PriorityQueue<Complaint> getTriageQueue() {
         Comparator<Complaint> triageComparator = Comparator
-                .comparingInt((Complaint c) -> c.getPriority().getLevel())
-                .thenComparing(Complaint::getCreatedDate);
+                .comparingInt((Complaint c) -> (c.getStaffId() == null || c.getStatus() == ComplaintStatus.REOPENED) ? 0 : 1)
+                .thenComparingInt((Complaint c) -> c.isOverdue() ? 0 : 1)
+                .thenComparingInt((Complaint c) -> c.getPriority() != null ? c.getPriority().getLevel() : 99)
+                .thenComparing(Complaint::getCreatedDate, Comparator.nullsLast(Comparator.naturalOrder()));
 
         PriorityQueue<Complaint> queue = new PriorityQueue<>(triageComparator);
         List<Complaint> openComplaints = complaintDao.findOpen();

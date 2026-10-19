@@ -19,20 +19,21 @@ class ComplaintStatusTest {
     }
 
     @Test
-    @DisplayName("ASSIGNED can only transition to IN_PROGRESS")
+    @DisplayName("ASSIGNED can transition to IN_PROGRESS or ASSIGNED (reassign)")
     void testAssignedTransitions() {
         assertTrue(ComplaintStatus.ASSIGNED.canTransitionTo(ComplaintStatus.IN_PROGRESS));
+        assertTrue(ComplaintStatus.ASSIGNED.canTransitionTo(ComplaintStatus.ASSIGNED));
         assertFalse(ComplaintStatus.ASSIGNED.canTransitionTo(ComplaintStatus.NEW));
         assertFalse(ComplaintStatus.ASSIGNED.canTransitionTo(ComplaintStatus.RESOLVED));
         assertFalse(ComplaintStatus.ASSIGNED.canTransitionTo(ComplaintStatus.CLOSED));
     }
 
     @Test
-    @DisplayName("IN_PROGRESS can only transition to RESOLVED")
+    @DisplayName("IN_PROGRESS can transition to RESOLVED or ASSIGNED (reassign)")
     void testInProgressTransitions() {
         assertTrue(ComplaintStatus.IN_PROGRESS.canTransitionTo(ComplaintStatus.RESOLVED));
+        assertTrue(ComplaintStatus.IN_PROGRESS.canTransitionTo(ComplaintStatus.ASSIGNED));
         assertFalse(ComplaintStatus.IN_PROGRESS.canTransitionTo(ComplaintStatus.NEW));
-        assertFalse(ComplaintStatus.IN_PROGRESS.canTransitionTo(ComplaintStatus.ASSIGNED));
         assertFalse(ComplaintStatus.IN_PROGRESS.canTransitionTo(ComplaintStatus.CLOSED));
     }
 
@@ -55,11 +56,11 @@ class ComplaintStatusTest {
     }
 
     @Test
-    @DisplayName("REOPENED can only transition to ASSIGNED")
+    @DisplayName("REOPENED can transition to ASSIGNED or RESOLVED")
     void testReopenedTransitions() {
         assertTrue(ComplaintStatus.REOPENED.canTransitionTo(ComplaintStatus.ASSIGNED));
+        assertTrue(ComplaintStatus.REOPENED.canTransitionTo(ComplaintStatus.RESOLVED));
         assertFalse(ComplaintStatus.REOPENED.canTransitionTo(ComplaintStatus.IN_PROGRESS));
-        assertFalse(ComplaintStatus.REOPENED.canTransitionTo(ComplaintStatus.RESOLVED));
         assertFalse(ComplaintStatus.REOPENED.canTransitionTo(ComplaintStatus.CLOSED));
     }
 

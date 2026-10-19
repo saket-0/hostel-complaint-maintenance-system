@@ -329,9 +329,16 @@ The database is pre-seeded with realistic data across all roles:
 
 The user interface is a zero-dependency **Single Page Application (SPA)** written in clean ES modules and vanilla CSS adhering to the slide deck's **Neo-brutalist aesthetic**:
 - **Color Palette**: Cream background (`#F5F0E8`), Deep Navy (`#0B1F4A`), Cyan (`#00B4D8`), Teal (`#1B7A6B`), Amber (`#E8960C`), and Coral Red (`#D90429`).
-- **Typography & Styling**: Bold geometric headers, monospace metadata labels, 2.5px solid black borders, and hard offset shadows (`4px 4px 0px #000000`).
+- **Typography & Rationed Brutalism**: Bold geometric headers, 15px minimum body type scale, 2.5px solid borders and hard offset shadows on primary cards and modals, with clean 1px borders on inputs, secondary buttons, and tables.
+- **Single-Level Navigation**: Exactly one top navigation bar per role with active route highlighting, route guards, and automatic redirects:
+  - **Student**: `My Complaints (#/mine)` | `+ New Complaint (#/new)` | Notification Bell | Profile Menu
+  - **Staff**: `My Tasks (#/tasks)` | `Completed (#/completed)` | Notification Bell | Profile Menu
+  - **Admin**: `Triage (#/triage)` | `All Complaints (#/complaints)` | `Analytics (#/analytics)` | `Staff (#/staff)` | Notification Bell | Profile Menu
+- **Admin Triage Board**: Four live clickable counter cards (Unassigned, Overdue, Reopened, High-Priority Open) that instantaneously filter the triage table sorted by priority and age.
+- **Contextual Actions**: Driven strictly by the server (`allowedActions` in DTO); users only see actionable buttons valid for their role and the complaint's lifecycle stage.
+- **Interactive Detail Drawer**: Right-side slide-over drawer displaying complaint metadata, progress stepper, assigned staff, SLA due status, comments thread, audit history, and feedback.
 - **Offline Charting**: Includes locally bundled, zero-CDN canvas charting (`chart.min.js`) for status distribution, category breakdown, and 30-day trends.
-- **Built with Java Live Ticker**: Prominently displays JVM version, server uptime, active threads, and HikariCP connection pool health in real-time.
+- **Built with Java Live Ticker**: Prominently displays JVM version, server uptime, active threads, and queue health in a subtle, accessible footer.
 
 ---
 

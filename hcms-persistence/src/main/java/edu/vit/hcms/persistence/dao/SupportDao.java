@@ -8,8 +8,6 @@ import edu.vit.hcms.core.model.ComplaintComment;
 import edu.vit.hcms.core.model.Notification;
 import edu.vit.hcms.core.model.Attachment;
 import edu.vit.hcms.persistence.db.TransactionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -22,7 +20,6 @@ import java.util.Optional;
  */
 public class SupportDao {
 
-    private static final Logger log = LoggerFactory.getLogger(SupportDao.class);
     private final TransactionManager txManager;
 
     public SupportDao(TransactionManager txManager) {
@@ -83,6 +80,37 @@ public class SupportDao {
             }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to find complaint history", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Returns all audit history entries across all complaints, ordered chronologically.
+     */
+    public List<ComplaintHistory> findAllHistory() {
+        String sql = "SELECT * FROM complaint_history ORDER BY changed_at DESC, id DESC";
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<ComplaintHistory> list = new ArrayList<>();
+            while (rs.next()) {
+                ComplaintHistory h = new ComplaintHistory();
+                h.setId(rs.getLong("id"));
+                h.setComplaintId(rs.getString("complaint_id"));
+                String oldStatus = rs.getString("old_status");
+                if (oldStatus != null) {
+                    h.setOldStatus(ComplaintStatus.valueOf(oldStatus));
+                }
+                h.setNewStatus(ComplaintStatus.valueOf(rs.getString("new_status")));
+                h.setChangedBy(rs.getLong("changed_by"));
+                h.setNote(rs.getString("note"));
+                h.setChangedAt(rs.getTimestamp("changed_at").toLocalDateTime());
+                list.add(h);
+            }
+            return list;
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to find all complaint history", e);
         } finally {
             txManager.releaseConnection(conn);
         }

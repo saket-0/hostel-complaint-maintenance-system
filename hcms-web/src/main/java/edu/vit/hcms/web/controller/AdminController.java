@@ -1,8 +1,11 @@
 package edu.vit.hcms.web.controller;
 
+import edu.vit.hcms.core.enums.ComplaintStatus;
 import edu.vit.hcms.core.enums.Priority;
+import edu.vit.hcms.core.enums.Role;
 import edu.vit.hcms.core.enums.Specialization;
 import edu.vit.hcms.core.model.*;
+import edu.vit.hcms.core.policy.ComplaintActionPolicy;
 import edu.vit.hcms.persistence.dao.ComplaintDao;
 import edu.vit.hcms.persistence.dao.SupportDao;
 import edu.vit.hcms.persistence.dao.UserDao;
@@ -10,6 +13,7 @@ import edu.vit.hcms.service.analytics.AnalyticsService;
 import edu.vit.hcms.service.complaint.ComplaintManager;
 import io.javalin.http.Context;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,153 @@ public class AdminController {
         this.supportDao = supportDao;
     }
 
+    /**
+     * GET /api/v1/admin/triage
+     * Admin triage queue sorted by:
+     * unassigned/reopened first -> overdue next -> priority (HIGH first) -> oldest.
+     * Computes live counters across open complaints:
+     * unassigned, overdue, reopened, highPriority.
+     * Supports filtering by counter, status, category, priority, hostelBlock, date range, q.
+     * Default page size: 25.
+     */
+    public void triage(Context ctx) {
+        String counter = ctx.queryParam("counter");
+        String status = ctx.queryParam("status");
+        String category = ctx.queryParam("category");
+        String priority = ctx.queryParam("priority");
+        String hostelBlock = ctx.queryParam("hostelBlock");
+        String fromDate = ctx.queryParam("fromDate");
+        String toDate = ctx.queryParam("toDate");
+        String query = ctx.queryParam("q");
+        int page = ctx.queryParamAsClass("page", Integer.class).getOrDefault(0);
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(25);
+
+        PriorityQueue<Complaint> queue = complaintManager.getTriageQueue();
+        List<Complaint> orderedComplaints = new ArrayList<>();
+        while (!queue.isEmpty()) {
+            orderedComplaints.add(queue.poll());
+        }
+
+        // Live counts for the 4 counter cards across ALL open complaints in triage queue
+        long unassignedCount = orderedComplaints.stream().filter(c -> c.getStaffId() == null).count();
+        long overdueCount = orderedComplaints.stream().filter(Complaint::isOverdue).count();
+        long reopenedCount = orderedComplaints.stream().filter(c -> c.getStatus() == ComplaintStatus.REOPENED).count();
+        long highPriorityCount = orderedComplaints.stream().filter(c -> c.getPriority() == Priority.HIGH).count();
+
+        // Local cache for users
+        Map<Long, Optional<User>> userCache = new HashMap<>();
+
+        // Apply filters
+        List<Complaint> filtered = orderedComplaints.stream().filter(c -> {
+            if (counter != null && !counter.isBlank()) {
+                switch (counter.toLowerCase()) {
+                    case "unassigned":
+                        if (c.getStaffId() != null) return false;
+                        break;
+                    case "overdue":
+                        if (!c.isOverdue()) return false;
+                        break;
+                    case "reopened":
+                        if (c.getStatus() != ComplaintStatus.REOPENED) return false;
+                        break;
+                    case "high_priority":
+                    case "high":
+                        if (c.getPriority() != Priority.HIGH) return false;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (status != null && !status.isBlank()) {
+                if (!c.getStatus().name().equalsIgnoreCase(status)) return false;
+            }
+
+            if (category != null && !category.isBlank()) {
+                if (!c.getCategory().name().equalsIgnoreCase(category)) return false;
+            }
+
+            if (priority != null && !priority.isBlank()) {
+                boolean matches = c.getPriority().name().equalsIgnoreCase(priority)
+                        || String.valueOf(c.getPriority().getLevel()).equals(priority);
+                if (!matches) return false;
+            }
+
+            if (hostelBlock != null && !hostelBlock.isBlank()) {
+                User u = userCache.computeIfAbsent(c.getStudentId(), userDao::findById).orElse(null);
+                if (!(u instanceof Student s) || !hostelBlock.equalsIgnoreCase(s.getHostelBlock())) {
+                    return false;
+                }
+            }
+
+            if (fromDate != null && !fromDate.isBlank()) {
+                try {
+                    LocalDate d = LocalDate.parse(fromDate);
+                    if (c.getCreatedDate().toLocalDate().isBefore(d)) return false;
+                } catch (Exception ignored) {}
+            }
+
+            if (toDate != null && !toDate.isBlank()) {
+                try {
+                    LocalDate d = LocalDate.parse(toDate);
+                    if (c.getCreatedDate().toLocalDate().isAfter(d)) return false;
+                } catch (Exception ignored) {}
+            }
+
+            if (query != null && !query.isBlank()) {
+                String q = query.toLowerCase();
+                boolean matchId = c.getComplaintId().toLowerCase().contains(q);
+                boolean matchDesc = c.getDescription() != null && c.getDescription().toLowerCase().contains(q);
+                boolean matchStaff = c.getAssignedStaffName() != null && c.getAssignedStaffName().toLowerCase().contains(q);
+                User u = userCache.computeIfAbsent(c.getStudentId(), userDao::findById).orElse(null);
+                boolean matchStudent = u != null && u.getName().toLowerCase().contains(q);
+                boolean matchRoom = (u instanceof Student s) && (
+                        (s.getRoomNumber() != null && s.getRoomNumber().toLowerCase().contains(q)) ||
+                        (s.getHostelBlock() != null && s.getHostelBlock().toLowerCase().contains(q))
+                );
+                if (!matchId && !matchDesc && !matchStaff && !matchStudent && !matchRoom) {
+                    return false;
+                }
+            }
+
+            return true;
+        }).collect(Collectors.toList());
+
+        int total = filtered.size();
+        int fromIndex = Math.min(page * size, total);
+        int toIndex = Math.min(fromIndex + size, total);
+        List<Complaint> paged = filtered.subList(fromIndex, toIndex);
+
+        List<Map<String, Object>> result = paged.stream().map(c -> {
+            c.setAllowedActions(ComplaintActionPolicy.allowedActions(Role.ADMIN, c));
+            Map<String, Object> m = toMap(c);
+            userCache.computeIfAbsent(c.getStudentId(), userDao::findById).ifPresent(u -> {
+                m.put("studentName", u.getName());
+                if (u instanceof Student s) {
+                    m.put("hostelBlock", s.getHostelBlock());
+                    m.put("roomNumber", s.getRoomNumber());
+                }
+            });
+            if (c.getStaffId() != null && !m.containsKey("staffName")) {
+                userCache.computeIfAbsent(c.getStaffId(), userDao::findById).ifPresent(u -> m.put("staffName", u.getName()));
+            }
+            return m;
+        }).collect(Collectors.toList());
+
+        ctx.json(Map.of(
+                "counters", Map.of(
+                        "unassigned", unassignedCount,
+                        "overdue", overdueCount,
+                        "reopened", reopenedCount,
+                        "highPriority", highPriorityCount
+                ),
+                "complaints", result,
+                "total", total,
+                "page", page,
+                "size", size
+        ));
+    }
+
     /** GET /api/v1/admin/complaints - Search, filter, sort, paginate complaints. */
     public void listComplaints(Context ctx) {
         String status = ctx.queryParam("status");
@@ -45,7 +196,7 @@ public class AdminController {
         String sortBy = ctx.queryParam("sortBy");
         String sortDir = ctx.queryParam("sortDir");
         int page = ctx.queryParamAsClass("page", Integer.class).getOrDefault(0);
-        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(20);
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(25);
 
         List<Complaint> complaints = complaintDao.search(
                 status, category, priority, hostelBlock, fromDate, toDate,
@@ -55,6 +206,7 @@ public class AdminController {
                 hostelBlock, fromDate, toDate, query);
 
         List<Map<String, Object>> result = complaints.stream().map(c -> {
+            c.setAllowedActions(ComplaintActionPolicy.allowedActions(Role.ADMIN, c));
             Map<String, Object> m = toMap(c);
             userDao.findById(c.getStudentId()).ifPresent(u -> {
                 m.put("studentName", u.getName());
@@ -159,6 +311,26 @@ public class AdminController {
         ctx.result(csv.toString());
     }
 
+    /** GET /api/v1/admin/export-audit.csv */
+    public void exportAuditCsv(Context ctx) {
+        List<edu.vit.hcms.core.model.ComplaintHistory> historyList = supportDao.findAllHistory();
+        StringBuilder csv = new StringBuilder();
+        csv.append("History ID,Complaint ID,Old Status,New Status,Changed By,Changed At,Note\n");
+        for (edu.vit.hcms.core.model.ComplaintHistory h : historyList) {
+            String noteEscaped = h.getNote() != null ? h.getNote().replace("\"", "\"\"") : "";
+            csv.append(h.getId()).append(",")
+               .append(h.getComplaintId()).append(",")
+               .append(h.getOldStatus() != null ? h.getOldStatus().name() : "").append(",")
+               .append(h.getNewStatus().name()).append(",")
+               .append(h.getChangedBy()).append(",")
+               .append(h.getChangedAt()).append(",")
+               .append("\"").append(noteEscaped).append("\"\n");
+        }
+        ctx.header("Content-Type", "text/csv");
+        ctx.header("Content-Disposition", "attachment; filename=audit_history_export.csv");
+        ctx.result(csv.toString());
+    }
+
     private Map<String, Object> toMap(Complaint c) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("complaintId", c.getComplaintId());
@@ -178,10 +350,17 @@ public class AdminController {
         m.put("dueBy", c.getDueBy() != null ? c.getDueBy().toString() : null);
         m.put("overdue", c.isOverdue());
         m.put("version", c.getVersion());
+        m.put("assignedStaffName", c.getAssignedStaffName());
+        m.put("assignedStaffSpecialization", c.getAssignedStaffSpecialization());
+        if (c.getAssignedStaffName() != null) {
+            m.put("staffName", c.getAssignedStaffName());
+        }
         supportDao.findFeedbackByComplaintId(c.getComplaintId()).ifPresent(f -> {
             m.put("feedbackRating", f.getRating());
             m.put("feedbackComment", f.getComment());
         });
+        m.put("feedbackGiven", c.isFeedbackGiven() || m.containsKey("feedbackRating"));
+        m.put("allowedActions", c.getAllowedActions());
         return m;
     }
 }

@@ -1,0 +1,31 @@
+# AI Agent Indexing & Context Exclusion Rules
+# Prevents token waste, redundant scans, and indexing of build/log junk
+
+# Build artifacts
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+logs/
+**/logs/
+*.log
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Minified third-party JS
+hcms-web/src/main/resources/public/js/chart.min.js
+
+# Node / Dependencies (if any)
+node_modules/
+
+# Agent Scratch Directory
+scratch/

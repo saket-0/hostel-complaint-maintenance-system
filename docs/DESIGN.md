@@ -146,3 +146,56 @@ To prevent two administrators from simultaneously assigning different staff memb
 - **HikariCP Connection Pool**: High-performance connection pooling with tuned parameters (`cachePrepStmts=true`, `prepStmtCacheSize=250`, `prepStmtCacheSqlLimit=2048`, `useServerPrepStmts=true`).
 - **`TransactionManager`**: Programmatic transaction demarcation using thread-local connection binding with explicit `commit()` and `rollback()` handling.
 - **`RowMapper<T>`**: Functional interface enabling declarative result set mapping into strongly-typed domain models.
+
+---
+
+## 7. Single-Level Navigation Architecture
+
+HCMS enforces a unified, single-level top navigation structure per user role. Duplicate tab rows and disjoint history pages have been eliminated in favor of contextual detail drawers and dedicated primary views.
+
+### 7.1 Role Navigation Matrix
+
+| Role | Navigation Links | Default Route | Allowed Hash Routes |
+| :--- | :--- | :--- | :--- |
+| **Student** | `My Complaints` \| `+ New Complaint` \| `Notifications` \| `Profile Menu` | `#/mine` | `#/mine`, `#/new` |
+| **Staff** | `My Tasks` \| `Completed` \| `Notifications` \| `Profile Menu` | `#/tasks` | `#/tasks`, `#/completed` |
+| **Admin** | `Triage` \| `All Complaints` \| `Analytics` \| `Staff` \| `Notifications` \| `Profile Menu` | `#/triage` | `#/triage`, `#/complaints`, `#/analytics`, `#/staff` |
+
+### 7.2 Route Guard & Deep Linking
+- **Single Source of Truth**: The client-side router (`app.js`) validates incoming hash fragments against `ROLE_ROUTES[user.role]`.
+- **Role Redirection**: Unauthorized or outdated hash routes (such as deprecated `#/history`) automatically redirect to the role's default landing page (`DEFAULT_ROUTE[role]`).
+- **Deep Linking**: Deep links and browser back/forward navigation (`popstate` / `hashchange`) preserve current subviews, filter query params, and open modals seamlessly across page refreshes.
+
+---
+
+## 8. Contextual Action Engine (`allowedActions`)
+
+Action buttons in the UI are strictly contextual and driven directly by server-side policy (`ComplaintActionPolicy`), preventing invalid actions and dead clicks.
+
+### 8.1 State & Role Action Matrix
+
+| Complaint Status | Assigned? | Student Actions | Maintenance Staff Actions | Admin Actions |
+| :--- | :--- | :--- | :--- | :--- |
+| **`NEW`** | No | `VIEW` | `VIEW` | `ASSIGN`, `AUTO_ASSIGN`, `VIEW` |
+| **`NEW`** | Yes | `VIEW` | `VIEW` | `REASSIGN`, `VIEW` |
+| **`ASSIGNED`** | Yes | `VIEW` | `ACCEPT`, `VIEW` | `REASSIGN`, `VIEW` |
+| **`IN_PROGRESS`** | Yes | `VIEW` | `RESOLVE`, `VIEW` | `REASSIGN`, `VIEW` |
+| **`RESOLVED`** | Yes | `GIVE_FEEDBACK` (if none), `CLOSE`, `REOPEN` (≤7d), `VIEW` | `VIEW` | `VIEW` |
+| **`CLOSED`** | - | `VIEW` | `VIEW` | `VIEW` |
+| **`REOPENED`** | - | `VIEW` | `RESOLVE` (if assigned), `VIEW` | `ASSIGN` (highlighted), `VIEW` |
+
+### 8.2 Server-Side State Machine Enforcement
+- Any attempt to invoke an action contrary to the state machine or role policy returns HTTP **409 Conflict** (for invalid status transitions) or HTTP **422 Unprocessable Entity** (for semantic or timing violations, e.g. reopening past 7 days).
+- The `ComplaintResponse` DTO exposes `List<String> allowedActions` generated dynamically by `ComplaintActionPolicy.computeAllowedActions(complaint, user)`, ensuring the frontend never duplicates business rules.
+
+---
+
+## 9. Seed Data & Temporal Integrity Rules
+
+To ensure realistic development and deterministic testing, seed data satisfies strict temporal monotonicity validated on every application startup:
+
+1. **Temporal Monotonicity**: For every seeded complaint:
+   $$\text{createdDate} \le \text{history.changedAt} \le \text{updatedDate} \le \text{resolvedDate}$$
+2. **Complete State Traversal**: A corresponding `complaint_history` entry exists for every status the complaint has passed through (`NEW` $\to$ `ASSIGNED` $\to$ `IN_PROGRESS` $\to$ `RESOLVED`).
+3. **Readable Actor Audit Trail**: Audit history logs human-readable descriptions server-side (e.g., `"Assigned to Arun (Electrical)"` rather than `"Assigned to staff 2"`).
+4. **Automated Startup Validation**: `SeedDataValidator` scans all seeded complaints and history rows on startup and test runs, failing fast with descriptive errors if any invariant is violated.

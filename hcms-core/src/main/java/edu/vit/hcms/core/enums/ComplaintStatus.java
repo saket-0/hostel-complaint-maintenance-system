@@ -24,13 +24,13 @@ public enum ComplaintStatus {
     ASSIGNED("Assigned", "#0B1F4A") {
         @Override
         protected Set<ComplaintStatus> allowedTransitions() {
-            return EnumSet.of(IN_PROGRESS);
+            return EnumSet.of(IN_PROGRESS, ASSIGNED);
         }
     },
     IN_PROGRESS("In Progress", "#E8960C") {
         @Override
         protected Set<ComplaintStatus> allowedTransitions() {
-            return EnumSet.of(RESOLVED);
+            return EnumSet.of(RESOLVED, ASSIGNED);
         }
     },
     RESOLVED("Resolved", "#1B7A6B") {
@@ -48,7 +48,7 @@ public enum ComplaintStatus {
     REOPENED("Reopened", "#DC2626") {
         @Override
         protected Set<ComplaintStatus> allowedTransitions() {
-            return EnumSet.of(ASSIGNED);
+            return EnumSet.of(ASSIGNED, RESOLVED);
         }
     };
 

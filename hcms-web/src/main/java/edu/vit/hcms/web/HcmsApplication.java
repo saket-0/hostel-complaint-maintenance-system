@@ -40,7 +40,25 @@ public class HcmsApplication {
     }
 
     public static void main(String[] args) {
-        log.info("Starting HCMS - Hostel Complaint & Maintenance System");
+        AppConfig config = AppConfig.getInstance();
+        int port = config.getInt("PORT");
+        Javalin app = createServer(port);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutting down HCMS...");
+            app.stop();
+            log.info("HCMS shutdown complete");
+        }, "shutdown-hook"));
+    }
+
+    /**
+     * Creates and configures the Javalin server and all subsystem dependencies.
+     * Starts listening on the given port (or dynamic port if 0).
+     *
+     * @param port the TCP port to bind to
+     * @return the running Javalin instance
+     */
+    public static Javalin createServer(int port) {
+        log.info("Initializing HCMS - Hostel Complaint & Maintenance System");
         AppConfig config = AppConfig.getInstance();
 
         // ---- Persistence Layer ----
@@ -72,7 +90,7 @@ public class HcmsApplication {
         AuthController authController = new AuthController(authService, userDao);
         ComplaintController complaintController = new ComplaintController(complaintManager, supportDao, userDao);
         AdminController adminController = new AdminController(complaintManager, complaintDao, userDao, analyticsService, supportDao);
-        StaffController staffController = new StaffController(complaintManager, userDao);
+        StaffController staffController = new StaffController(complaintManager, userDao, supportDao);
         NotificationController notificationController = new NotificationController(notificationService);
         HealthController healthController = new HealthController(dbManager, notificationService);
 
@@ -81,7 +99,6 @@ public class HcmsApplication {
         RateLimitFilter rateLimitFilter = new RateLimitFilter();
 
         // ---- Javalin App ----
-        int port = config.getInt("PORT");
         Javalin app = Javalin.create(javalinConfig -> {
             javalinConfig.staticFiles.add("/public", Location.CLASSPATH);
             javalinConfig.http.maxRequestSize = config.getLong("MAX_UPLOAD_SIZE_BYTES") + 1024;
@@ -134,6 +151,10 @@ public class HcmsApplication {
             rateLimitFilter.checkLimit(ctx, "complaint", config.getInt("RATE_LIMIT_COMPLAINT"));
             complaintController.create(ctx);
         });
+        app.post("/api/v1/complaints/{id}/attachments", ctx -> {
+            authFilter.requireRole(ctx, "STUDENT");
+            complaintController.uploadAttachment(ctx);
+        });
         app.get("/api/v1/complaints/mine", ctx -> {
             authFilter.requireRole(ctx, "STUDENT");
             complaintController.getMyComplaints(ctx);
@@ -168,6 +189,10 @@ public class HcmsApplication {
         });
 
         // ---- Admin Routes ----
+        app.get("/api/v1/admin/triage", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.triage(ctx);
+        });
         app.get("/api/v1/admin/complaints", ctx -> {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.listComplaints(ctx);
@@ -203,6 +228,10 @@ public class HcmsApplication {
         app.get("/api/v1/admin/export", ctx -> {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.exportCsv(ctx);
+        });
+        app.get("/api/v1/admin/export-audit.csv", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.exportAuditCsv(ctx);
         });
 
         // ---- Staff Routes ----
@@ -244,18 +273,16 @@ public class HcmsApplication {
         // SPA fallback: serve index.html for any non-API, non-static path
         app.get("/", ctx -> ctx.redirect("/index.html"));
 
-        // ---- Graceful Shutdown ----
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("Shutting down HCMS...");
-            app.stop();
+        // ---- Lifecycle Cleanup ----
+        app.events(event -> event.serverStopped(() -> {
             slaEngine.close();
             notificationService.close();
             auditListener.close();
             dbManager.close();
-            log.info("HCMS shutdown complete");
-        }, "shutdown-hook"));
+        }));
 
         app.start(port);
-        log.info("HCMS started on port {} (profile: {})", port, config.get("PROFILE"));
+        log.info("HCMS started on port {} (profile: {})", app.port(), config.get("PROFILE"));
+        return app;
     }
 }

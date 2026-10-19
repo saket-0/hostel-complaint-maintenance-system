@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * a real MySQL 8 Testcontainer.
  * Executes during integration-test phase (maven-failsafe-plugin).
  */
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @DisplayName("DAO Integration Tests with MySQL Testcontainer")
 class DaoIntegrationIT {
 

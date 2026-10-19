@@ -3,7 +3,7 @@
  * Manages user state, login, registration, and logout flows.
  */
 import { apiRequest, setToken, getToken } from './api.js';
-import { showToast } from './toast.js';
+import { showToast, dismissToast } from './toast.js';
 
 let currentUser = null;
 
@@ -31,6 +31,7 @@ export async function checkAuth() {
 }
 
 export async function login(email, password) {
+    dismissToast();
     const data = await apiRequest('/auth/login', {
         method: 'POST',
         body: { email, password }

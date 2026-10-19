@@ -51,6 +51,12 @@ public class HealthController {
         response.put("usedMemoryMb", (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
         response.put("availableProcessors", Runtime.getRuntime().availableProcessors());
 
+        String appEnv = System.getenv("APP_ENV");
+        if (appEnv == null || appEnv.isBlank()) {
+            appEnv = edu.vit.hcms.core.config.AppConfig.getInstance().get("PROFILE", "dev");
+        }
+        response.put("appEnv", appEnv);
+
         ctx.json(response);
     }
 }

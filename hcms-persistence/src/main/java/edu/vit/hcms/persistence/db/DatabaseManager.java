@@ -98,6 +98,9 @@ public class DatabaseManager implements AutoCloseable {
         flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed");
+
+        // Validate seed data timestamp invariants and lifecycle progression
+        edu.vit.hcms.persistence.validation.SeedDataValidator.validate(dataSource);
     }
 
     /** Returns the underlying DataSource for DAO use. */

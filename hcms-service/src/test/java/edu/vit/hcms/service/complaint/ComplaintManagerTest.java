@@ -140,6 +140,81 @@ class ComplaintManagerTest {
     }
 
     @Test
+    @DisplayName("Triage Queue orders: unassigned/reopened first -> overdue -> priority -> oldest")
+    void testTriageQueueFullComparatorHierarchy() {
+        LocalDateTime now = LocalDateTime.now();
+        // 1. Assigned, not overdue, HIGH priority
+        Complaint assignedHigh = Complaint.builder()
+                .complaintId("C-ASSIGNED-HIGH")
+                .studentId(101L)
+                .category(Category.ELECTRICAL)
+                .description("Test assigned high")
+                .staffId(5L)
+                .status(ComplaintStatus.IN_PROGRESS)
+                .priority(Priority.HIGH)
+                .dueBy(now.plusDays(2))
+                .createdDate(now.minusDays(5))
+                .build();
+
+        // 2. Assigned, OVERDUE, LOW priority
+        Complaint assignedOverdueLow = Complaint.builder()
+                .complaintId("C-ASSIGNED-OVERDUE")
+                .studentId(101L)
+                .category(Category.ELECTRICAL)
+                .description("Test assigned overdue low")
+                .staffId(5L)
+                .status(ComplaintStatus.IN_PROGRESS)
+                .priority(Priority.LOW)
+                .dueBy(now.minusHours(1)) // Overdue!
+                .createdDate(now.minusDays(2))
+                .build();
+
+        // 3. Unassigned, LOW priority, not overdue
+        Complaint unassignedLow = Complaint.builder()
+                .complaintId("C-UNASSIGNED-LOW")
+                .studentId(101L)
+                .category(Category.ELECTRICAL)
+                .description("Test unassigned low")
+                .staffId(null)
+                .status(ComplaintStatus.NEW)
+                .priority(Priority.LOW)
+                .dueBy(now.plusDays(5))
+                .createdDate(now.minusHours(3))
+                .build();
+
+        // 4. Reopened, HIGH priority, not overdue
+        Complaint reopenedHigh = Complaint.builder()
+                .complaintId("C-REOPENED-HIGH")
+                .studentId(101L)
+                .category(Category.ELECTRICAL)
+                .description("Test reopened high")
+                .staffId(6L)
+                .status(ComplaintStatus.REOPENED)
+                .priority(Priority.HIGH)
+                .dueBy(now.plusDays(1))
+                .createdDate(now.minusHours(4))
+                .build();
+
+        when(complaintDao.findOpen()).thenReturn(List.of(assignedHigh, assignedOverdueLow, unassignedLow, reopenedHigh));
+
+        PriorityQueue<Complaint> queue = complaintManager.getTriageQueue();
+
+        // Level 1: Unassigned/Reopened come first!
+        // Between reopenedHigh and unassignedLow: both are unassigned/reopened.
+        // Neither is overdue.
+        // reopenedHigh has priority HIGH (1) vs unassignedLow LOW (3), so reopenedHigh comes first!
+        assertEquals("C-REOPENED-HIGH", queue.poll().getComplaintId());
+        assertEquals("C-UNASSIGNED-LOW", queue.poll().getComplaintId());
+
+        // Level 2: Remaining are assignedHigh and assignedOverdueLow.
+        // assignedOverdueLow is overdue, while assignedHigh is not -> assignedOverdueLow comes next!
+        assertEquals("C-ASSIGNED-OVERDUE", queue.poll().getComplaintId());
+
+        // Remaining is assignedHigh
+        assertEquals("C-ASSIGNED-HIGH", queue.poll().getComplaintId());
+    }
+
+    @Test
     @DisplayName("LinkedHashMap LRU cache stores and retrieves complaint")
     void testLruCache() {
         Complaint c = Complaint.builder()

@@ -1,15 +1,32 @@
 /**
  * Maintenance Staff Dashboard Module.
  * Displays assigned tasks, accept task action, update status to RESOLVED with note,
- * and toggle availability.
+ * toggle availability, and view completed tasks history.
  */
 import { apiRequest } from './api.js';
 import { showToast, escapeHtml } from './toast.js';
-import { formatDate, openComplaintModal } from './student.js';
+import { openComplaintModal } from './student.js';
+import { formatExactDate, formatRelativeDate, formatDueStatus } from './dates.js';
+import { getIcon } from './icons.js';
 
-export function initStaffView() {
+let currentModeIsCompleted = false;
+
+export function initStaffView(isCompleted = false) {
+    currentModeIsCompleted = isCompleted;
+
+    const titleEl = document.getElementById('staffDashboardTitle');
+    const availContainer = document.getElementById('staffAvailabilityContainer');
     const toggle = document.getElementById('availabilityToggle');
-    if (toggle) {
+
+    if (titleEl) {
+        titleEl.textContent = isCompleted ? 'Completed Tasks' : 'My Tasks';
+    }
+
+    if (availContainer) {
+        availContainer.style.display = isCompleted ? 'none' : 'flex';
+    }
+
+    if (toggle && !isCompleted) {
         toggle.onchange = async () => {
             const available = toggle.checked;
             try {
@@ -25,24 +42,29 @@ export function initStaffView() {
         };
     }
 
-    loadStaffTasks();
+    loadStaffTasks(isCompleted);
 }
 
-export async function loadStaffTasks() {
+export async function loadStaffTasks(isCompleted = false) {
     const listEl = document.getElementById('staffTasks');
     if (!listEl) return;
 
-    listEl.innerHTML = '<div class="loading">Loading assigned tasks...</div>';
+    listEl.innerHTML = `
+        <div class="skeleton-card" style="height:120px; border-radius:4px; margin-bottom:12px; background:linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size:200% 100%; animation:shimmer 1.5s infinite;"></div>
+        <div class="skeleton-card" style="height:120px; border-radius:4px; margin-bottom:12px; background:linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size:200% 100%; animation:shimmer 1.5s infinite;"></div>
+    `;
 
     try {
-        const data = await apiRequest('/staff/tasks');
+        const endpoint = isCompleted ? '/staff/tasks/history' : '/staff/tasks';
+        const data = await apiRequest(endpoint);
         const tasks = (data && data.tasks) || [];
 
         if (tasks.length === 0) {
             listEl.innerHTML = `
-                <div class="empty-state">
-                    <p>🎉 All caught up!</p>
-                    <p>No pending maintenance tasks assigned to you right now.</p>
+                <div class="empty-state" style="padding: 40px 20px; text-align: center;">
+                    <div class="empty-icon" style="margin-bottom: 12px; color: var(--grey);">${getIcon('inbox', '', 40)}</div>
+                    <h3 style="margin-bottom: 6px;">${isCompleted ? 'No completed tasks yet' : 'All caught up!'}</h3>
+                    <p style="color: var(--grey);">${isCompleted ? 'Tasks you mark as resolved will appear here.' : 'No pending maintenance tasks assigned to you right now.'}</p>
                 </div>
             `;
             return;
@@ -52,34 +74,53 @@ export async function loadStaffTasks() {
         tasks.forEach(task => {
             const card = document.createElement('div');
             card.className = 'complaint-card';
-            
-            const isOverdue = task.overdue ? '<span class="overdue-badge">OVERDUE</span>' : '';
-            const isAssigned = task.status === 'ASSIGNED';
-            const isInProgress = task.status === 'IN_PROGRESS';
+            card.style.cursor = 'pointer';
 
+            const isOverdue = task.overdue ? '<span class="badge badge-overdue" style="margin-left:4px;">OVERDUE</span>' : '';
+            const pLabel = task.priority === 1 ? 'High' : task.priority === 2 ? 'Medium' : 'Low';
+            const pClass = task.priority === 1 ? 'priority-high' : task.priority === 2 ? 'priority-medium' : 'priority-low';
+
+            const allowed = task.allowedActions || [];
             let actionHtml = '';
-            if (isAssigned) {
+            if (allowed.includes('ACCEPT')) {
                 actionHtml = `<button class="btn btn-primary btn-sm btn-accept" data-id="${task.complaintId}">Accept Task</button>`;
-            } else if (isInProgress) {
+            } else if (allowed.includes('RESOLVE')) {
                 actionHtml = `<button class="btn btn-teal btn-sm btn-resolve" data-id="${task.complaintId}">Mark as Resolved</button>`;
             }
 
+            const feedbackRating = task.feedbackRating;
+            const feedbackComment = task.feedbackComment;
+            let feedbackHtml = '';
+            if (feedbackRating) {
+                feedbackHtml = `<div class="task-review" style="margin-top: 8px; padding: 6px 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; font-size: 0.85rem;">
+                    <span style="color: #b45309; font-weight: 700;">★ ${feedbackRating}/5:</span>
+                    ${feedbackComment ? `<em>"${escapeHtml(feedbackComment)}"</em>` : ''}
+                </div>`;
+            }
+
+            const dateDisplay = isCompleted 
+                ? `<span title="${formatExactDate(task.resolvedDate || task.updatedDate)}">Resolved ${formatRelativeDate(task.resolvedDate || task.updatedDate)}</span>`
+                : `<span title="${formatExactDate(task.dueBy)}">${formatDueStatus(task.dueBy, task.status)}</span>`;
+
             card.innerHTML = `
                 <div class="complaint-card-header">
-                    <span class="complaint-id">${escapeHtml(task.complaintId)}</span>
+                    <span class="complaint-id font-mono">${escapeHtml(task.complaintId)}</span>
                     <div class="complaint-meta">
-                        <span class="priority-badge priority-${task.priority}">${escapeHtml(task.priority)}</span>
+                        <span class="badge ${pClass}">${escapeHtml(pLabel)}</span>
                         <span class="status-badge status-${task.status}">${escapeHtml(task.statusDisplay || task.status)}</span>
                         ${isOverdue}
                     </div>
                 </div>
                 <div class="complaint-card-body">
                     <p><strong>${escapeHtml(task.categoryDisplay || task.category)}:</strong> ${escapeHtml(task.description)}</p>
+                    ${feedbackHtml}
                 </div>
-                <div class="complaint-card-footer">
-                    <span>👤 Student: ${escapeHtml(task.studentName || 'Student')}</span>
-                    <span>⏱ Due By: ${formatDate(task.dueBy)}</span>
-                    <div style="display:flex; gap: 8px;">
+                <div class="complaint-card-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; color:var(--grey);">
+                        ${getIcon('user', '', 14)} ${escapeHtml(task.studentName || 'Student')}
+                    </span>
+                    <span style="font-size:0.85rem;">${dateDisplay}</span>
+                    <div style="display:flex; gap: 8px; align-items:center;">
                         <button class="btn btn-outline btn-sm btn-view-details" data-id="${task.complaintId}">Details</button>
                         ${actionHtml}
                     </div>
@@ -88,18 +129,32 @@ export async function loadStaffTasks() {
             listEl.appendChild(card);
         });
 
-        // Bind events
+        // Bind events: entire card is clickable except action buttons
+        listEl.querySelectorAll('.complaint-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-accept') || e.target.closest('.btn-resolve')) return;
+                const detailsBtn = card.querySelector('.btn-view-details');
+                if (detailsBtn) {
+                    openComplaintModal(detailsBtn.getAttribute('data-id'));
+                }
+            });
+        });
+
         listEl.querySelectorAll('.btn-view-details').forEach(btn => {
-            btn.onclick = () => openComplaintModal(btn.getAttribute('data-id'));
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                openComplaintModal(btn.getAttribute('data-id'));
+            };
         });
 
         listEl.querySelectorAll('.btn-accept').forEach(btn => {
-            btn.onclick = async () => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
                 const id = btn.getAttribute('data-id');
                 try {
                     await apiRequest(`/staff/tasks/${id}/accept`, { method: 'POST' });
                     showToast(`Task ${id} accepted. Status: IN PROGRESS`, 'success');
-                    loadStaffTasks();
+                    loadStaffTasks(currentModeIsCompleted);
                 } catch (err) {
                     showToast(err.message, 'error');
                 }
@@ -107,7 +162,8 @@ export async function loadStaffTasks() {
         });
 
         listEl.querySelectorAll('.btn-resolve').forEach(btn => {
-            btn.onclick = async () => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
                 const id = btn.getAttribute('data-id');
                 const note = prompt('Please enter resolution note / work done:');
                 if (note === null) return;
@@ -120,7 +176,7 @@ export async function loadStaffTasks() {
                         }
                     });
                     showToast(`Task ${id} marked as RESOLVED!`, 'success');
-                    loadStaffTasks();
+                    loadStaffTasks(currentModeIsCompleted);
                 } catch (err) {
                     showToast(err.message, 'error');
                 }
@@ -128,6 +184,13 @@ export async function loadStaffTasks() {
         });
 
     } catch (err) {
-        listEl.innerHTML = `<div class="toast toast-error">${escapeHtml(err.message)}</div>`;
+        listEl.innerHTML = `
+            <div class="inline-error-state" style="padding: 24px; text-align: center; border: 1px solid var(--border-color); background: #fff; margin: 16px 0;">
+                <div style="color: var(--crimson); margin-bottom: 8px;">${getIcon('alert-triangle', '', 28)}</div>
+                <p style="margin-bottom: 12px; font-weight: 600;">Failed to load tasks: ${escapeHtml(err.message)}</p>
+                <button class="btn btn-outline btn-sm staff-retry-btn" type="button">${getIcon('refresh-cw', '', 14)} Retry</button>
+            </div>
+        `;
+        listEl.querySelector('.staff-retry-btn')?.addEventListener('click', () => loadStaffTasks(isCompleted));
     }
 }

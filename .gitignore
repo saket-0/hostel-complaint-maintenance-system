@@ -7,6 +7,7 @@ target/
 *.ear
 
 # Maven local repository & logs
+logs/
 *.log
 .mvn/timing.properties
 

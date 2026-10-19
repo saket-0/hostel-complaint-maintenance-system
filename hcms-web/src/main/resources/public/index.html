@@ -13,15 +13,37 @@
     <!-- Navigation Bar -->
     <nav id="navbar" class="navbar" style="display:none;">
         <div class="nav-brand">
-            <h1 class="nav-title">⚙ HCMS</h1>
+            <a href="#" class="nav-logo" id="navLogo">
+                <span class="nav-logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="12"></line><line x1="15" y1="22" x2="15" y2="12"></line><line x1="9" y1="12" x2="15" y2="12"></line></svg>
+                </span>
+                <span class="nav-title">HCMS</span>
+            </a>
         </div>
         <div class="nav-links" id="navLinks"></div>
         <div class="nav-actions">
-            <button class="btn-icon notification-bell" id="notifBell" title="Notifications">
-                🔔 <span class="badge" id="notifBadge" style="display:none;">0</span>
+            <button class="btn-icon notification-bell" id="notifBell" title="Notifications" aria-label="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span class="badge" id="notifBadge" style="display:none;">0</span>
             </button>
-            <span class="user-name" id="userName"></span>
-            <button class="btn btn-outline btn-sm" id="logoutBtn">Logout</button>
+            <div class="profile-menu-container" id="profileMenuContainer">
+                <button class="profile-menu-trigger" id="profileMenuTrigger" aria-haspopup="true" aria-expanded="false" title="User Profile">
+                    <span class="profile-avatar" id="userAvatar">U</span>
+                    <span class="user-name" id="userName">User</span>
+                    <span class="profile-role-badge" id="userRoleBadge">ROLE</span>
+                    <span class="dropdown-chevron">▾</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown" style="display:none;">
+                    <div class="profile-dropdown-header">
+                        <strong id="dropdownUserName">User Name</strong>
+                        <span id="dropdownUserEmail" class="dropdown-email">user@vit.ac.in</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item" id="logoutBtn">
+                        Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -31,7 +53,7 @@
         <section id="authView" class="auth-container">
             <div class="auth-card">
                 <div class="auth-header">
-                    <h1>⚙ HCMS</h1>
+                    <h1>HCMS</h1>
                     <p>Hostel Complaint & Maintenance System</p>
                     <p class="subtitle">VIT Vellore</p>
                 </div>
@@ -51,9 +73,9 @@
                     <p class="auth-switch">Don't have an account? <a href="#" id="showRegister">Register</a></p>
 
                     <!-- Quick Demo Login (Temporary Test Feature) -->
-                    <div class="quick-login-container">
+                    <div class="quick-login-container" id="quickLoginContainer">
                         <div class="quick-login-divider">
-                            <span>⚡ Quick Test Login</span>
+                            <span>Quick Test Login</span>
                         </div>
                         <p class="quick-login-desc">Click any persona to auto-fill & login instantly:</p>
                         <div class="quick-login-grid">
@@ -70,12 +92,12 @@
                             <button type="button" class="btn-quick-login" data-email="staff.arun@vit.ac.in" data-password="password123" title="Login as Electrician (Arun)">
                                 <span class="ql-badge ql-staff">Staff</span>
                                 <span class="ql-label">Arun</span>
-                                <span class="ql-sub">⚡ Electrical</span>
+                                <span class="ql-sub">Electrical</span>
                             </button>
                             <button type="button" class="btn-quick-login" data-email="staff.bala@vit.ac.in" data-password="password123" title="Login as Plumber (Bala)">
                                 <span class="ql-badge ql-staff">Staff</span>
                                 <span class="ql-label">Bala</span>
-                                <span class="ql-sub">🔧 Plumbing</span>
+                                <span class="ql-sub">Plumbing</span>
                             </button>
                         </div>
                     </div>
@@ -115,91 +137,254 @@
         <!-- Student Dashboard -->
         <section id="studentDashboard" class="dashboard" style="display:none;">
             <div class="dashboard-header">
-                <h2>📋 My Complaints</h2>
+                <h2>My Complaints</h2>
                 <button class="btn btn-primary" id="newComplaintBtn">+ New Complaint</button>
             </div>
 
-            <!-- New Complaint Form -->
-            <div id="newComplaintForm" class="card" style="display:none;">
-                <h3>Submit New Complaint</h3>
-                <form id="complaintForm">
-                    <div class="form-group">
-                        <label for="complaintCategory">Category</label>
-                        <select id="complaintCategory" required>
-                            <option value="">Select category...</option>
-                            <option value="ELECTRICAL">⚡ Electrical</option>
-                            <option value="PLUMBING">🔧 Plumbing</option>
-                            <option value="WIFI">📶 Wi-Fi</option>
-                            <option value="AC">❄️ AC</option>
-                            <option value="CARPENTRY">🪵 Carpentry</option>
-                            <option value="CLEANING">🧹 Cleaning</option>
-                            <option value="OTHER">📦 Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="complaintDesc">Description</label>
-                        <textarea id="complaintDesc" rows="4" placeholder="Describe the issue in detail (min 10 characters)..." minlength="10" maxlength="2000" required></textarea>
-                        <span class="char-count" id="charCount">0 / 2000</span>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Submit Complaint</button>
-                        <button type="button" class="btn btn-outline" id="cancelComplaint">Cancel</button>
-                    </div>
-                </form>
+            <!-- Filter Chips Row -->
+            <div class="filter-chips-row" id="studentFilterChips">
+                <button type="button" class="filter-chip active" data-filter="ALL">
+                    All <span class="chip-count" id="chipCountAll">0</span>
+                </button>
+                <button type="button" class="filter-chip" data-filter="OPEN">
+                    Open <span class="chip-count" id="chipCountOpen">0</span>
+                </button>
+                <button type="button" class="filter-chip" data-filter="RESOLVED">
+                    Resolved <span class="chip-count" id="chipCountResolved">0</span>
+                </button>
+                <button type="button" class="filter-chip" data-filter="CLOSED">
+                    Closed <span class="chip-count" id="chipCountClosed">0</span>
+                </button>
             </div>
 
             <!-- Complaints List -->
             <div id="studentComplaints" class="complaints-list">
                 <div class="loading" id="studentLoading">Loading complaints...</div>
                 <div class="empty-state" id="studentEmpty" style="display:none;">
-                    <p>🎉 No complaints yet!</p>
-                    <p>Click "New Complaint" to report an issue.</p>
+                    <div class="empty-icon" style="font-size: 2.8rem; margin-bottom: 8px;">🎉</div>
+                    <h3 style="margin-bottom: 6px;">No complaints found</h3>
+                    <p style="color: var(--grey); margin-bottom: 16px;">Everything is running smoothly! If you have any maintenance needs, let us know.</p>
+                    <button type="button" class="btn btn-primary" id="studentEmptySubmitBtn">+ Submit your first complaint</button>
                 </div>
             </div>
         </section>
 
         <!-- Admin Dashboard -->
         <section id="adminDashboard" class="dashboard" style="display:none;">
-            <div class="dashboard-header">
-                <h2>🏛 Admin Dashboard</h2>
-                <div class="tab-bar">
-                    <button class="tab active" data-tab="complaints">Complaints</button>
-                    <button class="tab" data-tab="analytics">Analytics</button>
-                    <button class="tab" data-tab="staff">Staff</button>
+            <!-- Triage Tab (Admin Default Landing Page) -->
+            <div id="adminTriageTab" class="tab-content" style="display:none;">
+                <div class="dashboard-header">
+                    <h2>Complaint Triage Board</h2>
                 </div>
+
+                <!-- 4 Clickable Counter Cards -->
+                <div class="triage-counters-grid" id="triageCountersGrid">
+                    <div class="triage-counter-card" data-counter="unassigned" tabindex="0" role="button" aria-pressed="false" title="Click to filter unassigned complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">Unassigned</span>
+                            <span class="counter-badge badge-unassigned">Action Required</span>
+                        </div>
+                        <div class="counter-value" id="triageCountUnassigned">-</div>
+                        <div class="counter-sub">Needs staff assignment</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="overdue" tabindex="0" role="button" aria-pressed="false" title="Click to filter overdue complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">Overdue</span>
+                            <span class="counter-badge badge-overdue">Late SLA</span>
+                        </div>
+                        <div class="counter-value text-red" id="triageCountOverdue">-</div>
+                        <div class="counter-sub">Past SLA deadline</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="reopened" tabindex="0" role="button" aria-pressed="false" title="Click to filter reopened complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">Reopened</span>
+                            <span class="counter-badge badge-reopened">Attention</span>
+                        </div>
+                        <div class="counter-value text-amber" id="triageCountReopened">-</div>
+                        <div class="counter-sub">Student rejected resolution</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="high_priority" tabindex="0" role="button" aria-pressed="false" title="Click to filter high-priority open complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">High-Priority Open</span>
+                            <span class="counter-badge badge-high">24h SLA</span>
+                        </div>
+                        <div class="counter-value text-cyan" id="triageCountHighPriority">-</div>
+                        <div class="counter-sub">High urgency tickets</div>
+                    </div>
+                </div>
+
+                <!-- Compact Toolbar -->
+                <div class="triage-toolbar">
+                    <div class="toolbar-search-wrap">
+                        <input type="text" id="triageSearchInput" placeholder="Search ID, student, room, description..." class="toolbar-search">
+                    </div>
+                    <div class="toolbar-actions-wrap">
+                        <div class="popover-wrapper">
+                            <button class="btn btn-outline btn-sm popover-toggle" id="triageFiltersBtn" type="button" aria-expanded="false">
+                                <span>Filters</span>
+                                <span class="filter-count-badge" id="triageFilterBadge" style="display:none;">0</span>
+                            </button>
+                            <div class="filters-popover" id="triageFiltersPopover" style="display:none;">
+                                <div class="popover-title">Filter Triage Queue</div>
+                                <div class="popover-grid">
+                                    <div class="popover-field">
+                                        <label for="triagePopStatus">Status</label>
+                                        <select id="triagePopStatus">
+                                            <option value="">All Open Statuses</option>
+                                            <option value="NEW">New</option>
+                                            <option value="ASSIGNED">Assigned</option>
+                                            <option value="IN_PROGRESS">In Progress</option>
+                                            <option value="REOPENED">Reopened</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="triagePopCategory">Category</label>
+                                        <select id="triagePopCategory">
+                                            <option value="">All Categories</option>
+                                            <option value="ELECTRICAL">Electrical</option>
+                                            <option value="PLUMBING">Plumbing</option>
+                                            <option value="WIFI">Wi-Fi</option>
+                                            <option value="AC">AC</option>
+                                            <option value="CARPENTRY">Carpentry</option>
+                                            <option value="CLEANING">Cleaning</option>
+                                            <option value="OTHER">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="triagePopPriority">Priority</label>
+                                        <select id="triagePopPriority">
+                                            <option value="">All Priorities</option>
+                                            <option value="1">High</option>
+                                            <option value="2">Medium</option>
+                                            <option value="3">Low</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="triagePopBlock">Hostel Block</label>
+                                        <select id="triagePopBlock">
+                                            <option value="">All Blocks</option>
+                                            <option value="A">Block A</option>
+                                            <option value="B">Block B</option>
+                                            <option value="C">Block C</option>
+                                            <option value="D">Block D</option>
+                                            <option value="E">Block E</option>
+                                            <option value="F">Block F</option>
+                                            <option value="G">Block G</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="triagePopFromDate">From Date</label>
+                                        <input type="date" id="triagePopFromDate">
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="triagePopToDate">To Date</label>
+                                        <input type="date" id="triagePopToDate">
+                                    </div>
+                                </div>
+                                <div class="popover-footer">
+                                    <button class="btn btn-outline btn-sm" id="triagePopResetBtn" type="button">Reset</button>
+                                    <button class="btn btn-primary btn-sm" id="triagePopApplyBtn" type="button">Apply Filters</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="active-chips-row" id="triageActiveChips"></div>
+
+                <div id="triageComplaints" class="complaints-table-wrapper">
+                    <div class="loading">Loading triage queue...</div>
+                </div>
+                <div class="pagination" id="triagePagination"></div>
             </div>
 
-            <!-- Complaints Tab -->
-            <div id="adminComplaintsTab" class="tab-content">
-                <div class="filters-bar">
-                    <select id="filterStatus">
-                        <option value="">All Status</option>
-                        <option value="NEW">New</option>
-                        <option value="ASSIGNED">Assigned</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Resolved</option>
-                        <option value="CLOSED">Closed</option>
-                        <option value="REOPENED">Reopened</option>
-                    </select>
-                    <select id="filterCategory">
-                        <option value="">All Categories</option>
-                        <option value="ELECTRICAL">Electrical</option>
-                        <option value="PLUMBING">Plumbing</option>
-                        <option value="WIFI">Wi-Fi</option>
-                        <option value="AC">AC</option>
-                        <option value="CARPENTRY">Carpentry</option>
-                        <option value="CLEANING">Cleaning</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                    <select id="filterPriority">
-                        <option value="">All Priority</option>
-                        <option value="1">High</option>
-                        <option value="2">Medium</option>
-                        <option value="3">Low</option>
-                    </select>
-                    <input type="text" id="filterSearch" placeholder="Search...">
-                    <button class="btn btn-outline btn-sm" id="exportCsvBtn">📥 Export CSV</button>
+            <!-- All Complaints Tab -->
+            <div id="adminComplaintsTab" class="tab-content" style="display:none;">
+                <div class="dashboard-header">
+                    <h2>All Complaints</h2>
                 </div>
+
+                <!-- Compact Toolbar for All Complaints -->
+                <div class="triage-toolbar">
+                    <div class="toolbar-search-wrap">
+                        <input type="text" id="allSearchInput" placeholder="Search ID, student, room, description..." class="toolbar-search">
+                    </div>
+                    <div class="toolbar-actions-wrap">
+                        <div class="popover-wrapper">
+                            <button class="btn btn-outline btn-sm popover-toggle" id="allFiltersBtn" type="button" aria-expanded="false">
+                                <span>Filters</span>
+                                <span class="filter-count-badge" id="allFilterBadge" style="display:none;">0</span>
+                            </button>
+                            <div class="filters-popover" id="allFiltersPopover" style="display:none;">
+                                <div class="popover-title">Filter Complaints</div>
+                                <div class="popover-grid">
+                                    <div class="popover-field">
+                                        <label for="allPopStatus">Status</label>
+                                        <select id="allPopStatus">
+                                            <option value="">All Statuses</option>
+                                            <option value="NEW">New</option>
+                                            <option value="ASSIGNED">Assigned</option>
+                                            <option value="IN_PROGRESS">In Progress</option>
+                                            <option value="RESOLVED">Resolved</option>
+                                            <option value="CLOSED">Closed</option>
+                                            <option value="REOPENED">Reopened</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="allPopCategory">Category</label>
+                                        <select id="allPopCategory">
+                                            <option value="">All Categories</option>
+                                            <option value="ELECTRICAL">Electrical</option>
+                                            <option value="PLUMBING">Plumbing</option>
+                                            <option value="WIFI">Wi-Fi</option>
+                                            <option value="AC">AC</option>
+                                            <option value="CARPENTRY">Carpentry</option>
+                                            <option value="CLEANING">Cleaning</option>
+                                            <option value="OTHER">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="allPopPriority">Priority</label>
+                                        <select id="allPopPriority">
+                                            <option value="">All Priorities</option>
+                                            <option value="1">High</option>
+                                            <option value="2">Medium</option>
+                                            <option value="3">Low</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="allPopBlock">Hostel Block</label>
+                                        <select id="allPopBlock">
+                                            <option value="">All Blocks</option>
+                                            <option value="A">Block A</option>
+                                            <option value="B">Block B</option>
+                                            <option value="C">Block C</option>
+                                            <option value="D">Block D</option>
+                                            <option value="E">Block E</option>
+                                            <option value="F">Block F</option>
+                                            <option value="G">Block G</option>
+                                        </select>
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="allPopFromDate">From Date</label>
+                                        <input type="date" id="allPopFromDate">
+                                    </div>
+                                    <div class="popover-field">
+                                        <label for="allPopToDate">To Date</label>
+                                        <input type="date" id="allPopToDate">
+                                    </div>
+                                </div>
+                                <div class="popover-footer">
+                                    <button class="btn btn-outline btn-sm" id="allPopResetBtn" type="button">Reset</button>
+                                    <button class="btn btn-primary btn-sm" id="allPopApplyBtn" type="button">Apply Filters</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="exportCsvBtn">Export CSV</button>
+                        <button class="btn btn-outline btn-sm" id="exportAuditCsvBtn">Export Audit CSV</button>
+                    </div>
+                </div>
+                <div class="active-chips-row" id="allActiveChips"></div>
+
                 <div id="adminComplaints" class="complaints-table-wrapper">
                     <div class="loading">Loading...</div>
                 </div>
@@ -208,6 +393,9 @@
 
             <!-- Analytics Tab -->
             <div id="adminAnalyticsTab" class="tab-content" style="display:none;">
+                <div class="dashboard-header">
+                    <h2>Analytics & SLA Performance</h2>
+                </div>
                 <div class="analytics-grid" id="analyticsGrid">
                     <div class="stat-card">
                         <h4>Total Complaints</h4>
@@ -259,6 +447,9 @@
 
             <!-- Staff Management Tab -->
             <div id="adminStaffTab" class="tab-content" style="display:none;">
+                <div class="dashboard-header">
+                    <h2>Maintenance Staff Management</h2>
+                </div>
                 <div id="staffList" class="staff-grid"></div>
             </div>
         </section>
@@ -266,8 +457,8 @@
         <!-- Staff Dashboard -->
         <section id="staffDashboard" class="dashboard" style="display:none;">
             <div class="dashboard-header">
-                <h2>🔧 My Tasks</h2>
-                <div class="staff-availability">
+                <h2 id="staffDashboardTitle">My Tasks</h2>
+                <div class="staff-availability" id="staffAvailabilityContainer">
                     <label class="toggle-label">
                         <span>Available</span>
                         <input type="checkbox" id="availabilityToggle" checked>
@@ -280,66 +471,92 @@
             </div>
         </section>
 
-        <!-- Complaint History & Audit Trail View (All Roles) -->
-        <section id="historyView" class="dashboard" style="display:none;">
-            <div class="dashboard-header">
-                <h2>📜 Complaint History & Audit Trail</h2>
-                <div class="history-actions" id="historyActions"></div>
-            </div>
-
-            <!-- Summary statistics for historical view -->
-            <div class="analytics-grid" id="historyStatsGrid" style="margin-bottom: 20px;">
-                <div class="stat-card">
-                    <h4>Archived Records</h4>
-                    <p class="stat-value" id="historyTotalCount">0</p>
+        <!-- New Complaint Modal (Centered Dialog) -->
+        <div id="newComplaintModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalNewComplaintTitle">
+            <div class="modal-overlay" id="newComplaintOverlay"></div>
+            <div class="modal-content modal-md">
+                <button class="modal-close" id="closeNewComplaintModal" aria-label="Close modal">✕</button>
+                
+                <!-- View 1: Form View -->
+                <div id="newComplaintFormView">
+                    <h3 id="modalNewComplaintTitle">Submit New Complaint</h3>
+                    <p class="text-muted" style="margin-bottom: 16px; font-size: 0.9rem;">
+                        Report a maintenance issue in your hostel room or common area.
+                    </p>
+                    <form id="complaintForm">
+                        <div class="form-group">
+                            <label for="complaintCategory">Category</label>
+                            <select id="complaintCategory" required>
+                                <option value="">Select category...</option>
+                                <option value="ELECTRICAL">Electrical</option>
+                                <option value="PLUMBING">Plumbing</option>
+                                <option value="WIFI">Wi-Fi</option>
+                                <option value="AC">AC</option>
+                                <option value="CARPENTRY">Carpentry</option>
+                                <option value="CLEANING">Cleaning</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="complaintDesc">Description</label>
+                            <textarea id="complaintDesc" rows="4" placeholder="Describe the issue in detail (min 10 characters)..." minlength="10" maxlength="2000" required></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <span class="help-text" style="font-size: 0.8rem; color: var(--grey);">Be specific (e.g. room location, symptoms).</span>
+                                <span class="char-count" id="charCount" style="font-size: 0.8rem; font-weight: 700;">0 / 2000</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="complaintPhoto">Photo of Damage <span class="text-muted" style="font-weight: normal; font-size: 0.85rem;">(Optional)</span></label>
+                            <input type="file" id="complaintPhoto" accept="image/png, image/jpeg" style="padding: 8px; border: 1.5px solid var(--border-color); width: 100%; border-radius: 4px;">
+                            <span class="help-text" style="font-size: 0.75rem; color: var(--grey);">Supports JPG or PNG up to 5MB.</span>
+                        </div>
+                        <div class="form-actions" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn btn-outline" id="cancelComplaint">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="submitComplaintBtn">Submit Complaint</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="stat-card">
-                    <h4>Resolved</h4>
-                    <p class="stat-value" id="historyResolvedCount" style="color: var(--teal);">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Closed & Verified</h4>
-                    <p class="stat-value" id="historyClosedCount" style="color: var(--navy);">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Avg User Rating</h4>
-                    <p class="stat-value" id="historyAvgRating" style="color: var(--amber);">—</p>
+
+                <!-- View 2: Success Screen -->
+                <div id="newComplaintSuccessView" style="display:none; text-align: center; padding: 12px 6px;">
+                    <div style="margin-bottom: 12px; color: #1B7A6B;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    <h3 style="margin-bottom: 8px;">Complaint Registered!</h3>
+                    <p style="color: var(--grey); font-size: 0.9rem; margin-bottom: 20px;">
+                        Your complaint has been queued and will be triaged by our maintenance team.
+                    </p>
+                    <div class="success-ticket-box" style="background: #eef9fc; border: 2px dashed #00B4D8; border-radius: 6px; padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #0B1F4A; letter-spacing: 0.05em;">Complaint Tracking ID</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span id="successComplaintId" style="font-size: 1.4rem; font-weight: 800; color: #0B1F4A; letter-spacing: 0.05em; font-family: monospace;">CMP-XXXX-XXXX</span>
+                            <button type="button" class="btn btn-sm btn-outline" id="copyComplaintIdBtn" title="Copy Complaint ID">Copy</button>
+                        </div>
+                    </div>
+                    <div class="success-sla-box" style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 6px; padding: 12px; margin-bottom: 24px; text-align: left; font-size: 0.88rem;">
+                        <div style="display: flex; gap: 8px; align-items: flex-start;">
+                            <span style="color: #B45309;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </span>
+                            <div>
+                                <div><strong>Expected Resolution SLA:</strong> <span id="successSlaText">Within 24 hours</span></div>
+                                <div style="color: #6B7280; font-size: 0.8rem; margin-top: 2px;">Estimated Due: <span id="successDueText">—</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-primary" id="trackComplaintBtn">Track Complaint →</button>
+                        <button type="button" class="btn btn-outline" id="submitAnotherComplaintBtn">+ Submit Another</button>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Search and Filter Bar -->
-            <div class="card" style="margin-bottom: 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-                <input type="text" id="historySearchInput" placeholder="🔍 Search Complaint ID, description, student, staff..." style="flex:2; min-width:240px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-body);">
-                <select id="historyCategoryFilter" style="flex:1; min-width:160px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-heading); font-weight:700;">
-                    <option value="">All Categories</option>
-                    <option value="ELECTRICAL">⚡ Electrical</option>
-                    <option value="PLUMBING">🔧 Plumbing</option>
-                    <option value="WIFI">📶 Wi-Fi / Network</option>
-                    <option value="HVAC">❄ AC / HVAC</option>
-                    <option value="FURNITURE">🪑 Furniture</option>
-                    <option value="CLEANING">🧹 Cleaning</option>
-                </select>
-                <select id="historyStatusFilter" style="flex:1; min-width:160px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-heading); font-weight:700;">
-                    <option value="">All Statuses</option>
-                    <option value="RESOLVED">Resolved</option>
-                    <option value="CLOSED">Closed</option>
-                    <option value="REOPENED">Reopened</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="ASSIGNED">Assigned</option>
-                </select>
-            </div>
-
-            <!-- History List Container -->
-            <div id="historyComplaintsList" class="complaints-list">
-                <div class="loading">Loading historical complaints...</div>
-            </div>
-        </section>
-
-        <!-- Complaint Detail Modal -->
-        <div id="complaintModal" class="modal" style="display:none;">
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <button class="modal-close" id="closeModal">✕</button>
+        <!-- Complaint Detail Drawer -->
+        <div id="complaintModal" class="modal detail-drawer-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Complaint detail drawer">
+            <div class="modal-overlay drawer-overlay" id="drawerOverlay"></div>
+            <div class="modal-content detail-drawer-content" id="drawerContent">
+                <button class="modal-close" id="closeModal" aria-label="Close complaint detail">✕</button>
                 <div id="complaintDetail"></div>
             </div>
         </div>
@@ -364,7 +581,7 @@
         </div>
 
         <!-- Toast Container -->
-        <div id="toastContainer" class="toast-container"></div>
+        <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
     </main>
 
     <!-- Footer -->

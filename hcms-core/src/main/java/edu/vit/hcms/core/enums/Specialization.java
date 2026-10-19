@@ -23,4 +23,17 @@ public enum Specialization {
     public String getDisplayName() {
         return displayName;
     }
+
+    /** Role title for staff display (e.g. Electrician, Plumber). */
+    public String getRoleTitle() {
+        return switch (this) {
+            case ELECTRICAL -> "Electrician";
+            case PLUMBING -> "Plumber";
+            case NETWORK -> "Network Specialist";
+            case HVAC -> "HVAC Technician";
+            case CARPENTRY -> "Carpenter";
+            case CLEANING -> "Cleaner";
+            case GENERAL -> "Maintenance Staff";
+        };
+    }
 }

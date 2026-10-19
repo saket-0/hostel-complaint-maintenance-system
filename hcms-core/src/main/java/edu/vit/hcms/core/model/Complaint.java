@@ -28,6 +28,10 @@ public class Complaint {
     private LocalDateTime resolvedDate;
     private LocalDateTime dueBy;
     private int version; // optimistic locking
+    private String assignedStaffName;
+    private String assignedStaffSpecialization;
+    private boolean feedbackGiven;
+    private java.util.List<String> allowedActions;
 
     /** Private constructor enforces use of the Builder. */
     private Complaint() {
@@ -92,10 +96,42 @@ public class Complaint {
         return version;
     }
 
+    public String getAssignedStaffName() {
+        return assignedStaffName;
+    }
+
+    public String getAssignedStaffSpecialization() {
+        return assignedStaffSpecialization;
+    }
+
+    public boolean isFeedbackGiven() {
+        return feedbackGiven;
+    }
+
+    public java.util.List<String> getAllowedActions() {
+        return allowedActions != null ? allowedActions : java.util.Collections.emptyList();
+    }
+
     // --- Setters for mutable fields ---
+
+    public void setFeedbackGiven(boolean feedbackGiven) {
+        this.feedbackGiven = feedbackGiven;
+    }
+
+    public void setAllowedActions(java.util.List<String> allowedActions) {
+        this.allowedActions = allowedActions;
+    }
 
     public void setStaffId(Long staffId) {
         this.staffId = staffId;
+    }
+
+    public void setAssignedStaffName(String assignedStaffName) {
+        this.assignedStaffName = assignedStaffName;
+    }
+
+    public void setAssignedStaffSpecialization(String assignedStaffSpecialization) {
+        this.assignedStaffSpecialization = assignedStaffSpecialization;
     }
 
     public void setPriority(Priority priority) {
@@ -227,6 +263,26 @@ public class Complaint {
 
         public Builder version(int version) {
             complaint.version = version;
+            return this;
+        }
+
+        public Builder assignedStaffName(String assignedStaffName) {
+            complaint.assignedStaffName = assignedStaffName;
+            return this;
+        }
+
+        public Builder assignedStaffSpecialization(String assignedStaffSpecialization) {
+            complaint.assignedStaffSpecialization = assignedStaffSpecialization;
+            return this;
+        }
+
+        public Builder feedbackGiven(boolean feedbackGiven) {
+            complaint.feedbackGiven = feedbackGiven;
+            return this;
+        }
+
+        public Builder allowedActions(java.util.List<String> allowedActions) {
+            complaint.allowedActions = allowedActions;
             return this;
         }
 

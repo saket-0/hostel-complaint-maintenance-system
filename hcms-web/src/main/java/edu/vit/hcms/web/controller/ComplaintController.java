@@ -1,7 +1,12 @@
 package edu.vit.hcms.web.controller;
 
 import edu.vit.hcms.core.enums.Category;
+import edu.vit.hcms.core.enums.ComplaintStatus;
+import edu.vit.hcms.core.enums.Role;
+import edu.vit.hcms.core.exception.AuthorizationException;
+import edu.vit.hcms.core.exception.ValidationException;
 import edu.vit.hcms.core.model.*;
+import edu.vit.hcms.core.policy.ComplaintActionPolicy;
 import edu.vit.hcms.persistence.dao.SupportDao;
 import edu.vit.hcms.persistence.dao.UserDao;
 import edu.vit.hcms.service.complaint.ComplaintManager;
@@ -10,7 +15,9 @@ import edu.vit.hcms.web.dto.CreateComplaintRequest;
 import edu.vit.hcms.web.dto.FeedbackRequest;
 import edu.vit.hcms.web.dto.ReopenRequest;
 import io.javalin.http.Context;
+import io.javalin.http.UploadedFile;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +51,7 @@ public class ComplaintController {
         response.put("complaintId", complaint.getComplaintId());
         response.put("category", complaint.getCategory().getDisplayName());
         response.put("priority", complaint.getPriority().getDisplayName());
+        response.put("priorityLevel", complaint.getPriority().name());
         response.put("status", complaint.getStatus().name());
         response.put("dueBy", complaint.getDueBy() != null ? complaint.getDueBy().toString() : null);
         ctx.status(201).json(response);
@@ -58,6 +66,7 @@ public class ComplaintController {
         List<Complaint> complaints = complaintManager.getStudentComplaints(studentId, page, size);
 
         List<Map<String, Object>> result = complaints.stream()
+                .peek(c -> c.setAllowedActions(ComplaintActionPolicy.allowedActions(Role.STUDENT, c)))
                 .map(this::toMap)
                 .collect(Collectors.toList());
 
@@ -68,6 +77,12 @@ public class ComplaintController {
     public void getById(Context ctx) {
         String id = ctx.pathParam("id");
         Complaint complaint = complaintManager.getComplaint(id);
+
+        String roleStr = ctx.attribute("role");
+        Role role = roleStr != null ? Role.valueOf(roleStr) : Role.STUDENT;
+        boolean hasFeedback = supportDao.findFeedbackByComplaintId(id).isPresent();
+        complaint.setFeedbackGiven(hasFeedback);
+        complaint.setAllowedActions(ComplaintActionPolicy.allowedActions(role, complaint));
 
         Map<String, Object> response = toMap(complaint);
 
@@ -109,10 +124,72 @@ public class ComplaintController {
         // Resolve student and staff names
         userDao.findById(complaint.getStudentId()).ifPresent(u -> response.put("studentName", u.getName()));
         if (complaint.getStaffId() != null) {
-            userDao.findById(complaint.getStaffId()).ifPresent(u -> response.put("staffName", u.getName()));
+            userDao.findById(complaint.getStaffId()).ifPresent(u -> {
+                response.put("staffName", u.getName());
+                response.put("assignedStaffName", u.getName());
+                if (u instanceof MaintenanceStaff ms) {
+                    response.put("assignedStaffSpecialization", ms.getSpecialization().getDisplayName());
+                }
+            });
         }
 
+        List<Attachment> attachments = supportDao.findAttachmentsByComplaintId(id);
+        response.put("attachments", attachments.stream().map(a -> {
+            Map<String, Object> am = new LinkedHashMap<>();
+            am.put("id", a.getId());
+            am.put("fileName", a.getFileName());
+            am.put("contentType", a.getContentType());
+            am.put("sizeBytes", a.getSizeBytes());
+            am.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : null);
+            return am;
+        }).collect(Collectors.toList()));
+
         ctx.json(response);
+    }
+
+    /**
+     * Upload an optional photo attachment for a complaint.
+     * Validates file size (max 5MB) and type.
+     *
+     * @param ctx Javalin context with uploaded file 'photo' or 'file'
+     */
+    public void uploadAttachment(Context ctx) {
+        String complaintId = ctx.pathParam("id");
+        Long currentUserId = ctx.attribute("userId");
+        Complaint complaint = complaintManager.getComplaint(complaintId);
+        if (!complaint.getStudentId().equals(currentUserId)) {
+            throw new ValidationException("Only the complaint creator can attach files");
+        }
+
+        UploadedFile file = ctx.uploadedFile("photo");
+        if (file == null) {
+            file = ctx.uploadedFile("file");
+        }
+        if (file == null) {
+            throw new ValidationException("No photo file uploaded");
+        }
+
+        if (file.size() > 5 * 1024 * 1024) {
+            throw new ValidationException("Photo size exceeds 5MB limit");
+        }
+
+        String ct = file.contentType();
+        String name = file.filename();
+        Attachment attachment = new Attachment();
+        attachment.setComplaintId(complaintId);
+        attachment.setFileName(name != null ? name : "photo.jpg");
+        attachment.setContentType(ct != null ? ct : "image/jpeg");
+        attachment.setSizeBytes(file.size());
+        attachment.setStoredPath("/uploads/" + complaintId + "_" + (name != null ? name : "photo.jpg"));
+        attachment.setCreatedAt(LocalDateTime.now());
+
+        supportDao.saveAttachment(attachment);
+
+        ctx.status(201).json(Map.of(
+            "message", "Attachment saved successfully",
+            "attachmentId", attachment.getId(),
+            "fileName", attachment.getFileName()
+        ));
     }
 
     /** POST /api/v1/complaints/{id}/reopen */
@@ -138,6 +215,14 @@ public class ComplaintController {
     /** POST /api/v1/complaints/{id}/feedback */
     public void addFeedback(Context ctx) {
         String id = ctx.pathParam("id");
+        Long studentId = ctx.attribute("userId");
+        Complaint complaint = complaintManager.getComplaint(id);
+        if (!complaint.getStudentId().equals(studentId)) {
+            throw new AuthorizationException("You can only provide feedback on your own complaints");
+        }
+        if (complaint.getStatus() != ComplaintStatus.RESOLVED && complaint.getStatus() != ComplaintStatus.CLOSED) {
+            throw new ValidationException("feedback", "Feedback can only be provided for resolved or closed complaints");
+        }
         FeedbackRequest req = ctx.bodyAsClass(FeedbackRequest.class);
 
         Feedback feedback = new Feedback();
@@ -211,6 +296,11 @@ public class ComplaintController {
         m.put("dueBy", c.getDueBy() != null ? c.getDueBy().toString() : null);
         m.put("overdue", c.isOverdue());
         m.put("version", c.getVersion());
+        m.put("assignedStaffName", c.getAssignedStaffName());
+        m.put("assignedStaffSpecialization", c.getAssignedStaffSpecialization());
+        m.put("staffName", c.getAssignedStaffName());
+        m.put("feedbackGiven", c.isFeedbackGiven());
+        m.put("allowedActions", c.getAllowedActions());
         return m;
     }
 

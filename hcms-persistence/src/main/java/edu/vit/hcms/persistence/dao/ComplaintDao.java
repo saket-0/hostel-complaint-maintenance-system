@@ -35,22 +35,50 @@ public class ComplaintDao {
     // Thread-safe ID generator with AtomicLong as local cache
     private final AtomicLong localSequence = new AtomicLong(0);
 
-    private static final RowMapper<Complaint> COMPLAINT_MAPPER = rs -> Complaint.builder()
-            .complaintId(rs.getString("complaint_id"))
-            .studentId(rs.getLong("student_id"))
-            .staffId(rs.getObject("staff_id") != null ? rs.getLong("staff_id") : null)
-            .category(Category.valueOf(rs.getString("category")))
-            .description(rs.getString("description"))
-            .priority(Priority.fromLevel(rs.getInt("priority")))
-            .status(ComplaintStatus.valueOf(rs.getString("status")))
-            .createdDate(rs.getTimestamp("created_date").toLocalDateTime())
-            .updatedDate(rs.getTimestamp("updated_date").toLocalDateTime())
-            .resolvedDate(rs.getTimestamp("resolved_date") != null ?
-                    rs.getTimestamp("resolved_date").toLocalDateTime() : null)
-            .dueBy(rs.getTimestamp("due_by") != null ?
-                    rs.getTimestamp("due_by").toLocalDateTime() : null)
-            .version(rs.getInt("version"))
-            .build();
+    private static final String BASE_SELECT = """
+            SELECT c.*, u.name AS assigned_staff_name, s.specialization AS assigned_staff_specialization,
+                   (fb.feedback_id IS NOT NULL) AS feedback_given
+            FROM complaints c
+            LEFT JOIN users u ON c.staff_id = u.user_id
+            LEFT JOIN staff s ON c.staff_id = s.staff_id
+            LEFT JOIN feedback fb ON c.complaint_id = fb.complaint_id
+            """;
+
+    private static final RowMapper<Complaint> COMPLAINT_MAPPER = rs -> {
+        String staffName = null;
+        String staffSpec = null;
+        boolean feedbackGiven = false;
+        try {
+            staffName = rs.getString("assigned_staff_name");
+            staffSpec = rs.getString("assigned_staff_specialization");
+        } catch (SQLException ignored) {
+            // Optional columns if not present in custom projection
+        }
+        try {
+            feedbackGiven = rs.getBoolean("feedback_given");
+        } catch (SQLException ignored) {
+            // Optional column if not present in custom projection
+        }
+        return Complaint.builder()
+                .complaintId(rs.getString("complaint_id"))
+                .studentId(rs.getLong("student_id"))
+                .staffId(rs.getObject("staff_id") != null ? rs.getLong("staff_id") : null)
+                .category(Category.valueOf(rs.getString("category")))
+                .description(rs.getString("description"))
+                .priority(Priority.fromLevel(rs.getInt("priority")))
+                .status(ComplaintStatus.valueOf(rs.getString("status")))
+                .createdDate(rs.getTimestamp("created_date").toLocalDateTime())
+                .updatedDate(rs.getTimestamp("updated_date").toLocalDateTime())
+                .resolvedDate(rs.getTimestamp("resolved_date") != null ?
+                        rs.getTimestamp("resolved_date").toLocalDateTime() : null)
+                .dueBy(rs.getTimestamp("due_by") != null ?
+                        rs.getTimestamp("due_by").toLocalDateTime() : null)
+                .version(rs.getInt("version"))
+                .assignedStaffName(staffName)
+                .assignedStaffSpecialization(staffSpec)
+                .feedbackGiven(feedbackGiven)
+                .build();
+    };
 
     public ComplaintDao(TransactionManager txManager) {
         this.txManager = txManager;
@@ -166,7 +194,7 @@ public class ComplaintDao {
      * Finds a complaint by ID.
      */
     public Optional<Complaint> findById(String complaintId) {
-        String sql = "SELECT * FROM complaints WHERE complaint_id = ?";
+        String sql = BASE_SELECT + " WHERE c.complaint_id = ?";
         Connection conn = txManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, complaintId);
@@ -240,7 +268,7 @@ public class ComplaintDao {
      * Finds complaints by student ID with pagination.
      */
     public List<Complaint> findByStudentId(Long studentId, int offset, int limit) {
-        String sql = "SELECT * FROM complaints WHERE student_id = ? ORDER BY created_date DESC LIMIT ? OFFSET ?";
+        String sql = BASE_SELECT + " WHERE c.student_id = ? ORDER BY c.created_date DESC LIMIT ? OFFSET ?";
         return queryList(sql, ps -> {
             ps.setLong(1, studentId);
             ps.setInt(2, limit);
@@ -249,18 +277,18 @@ public class ComplaintDao {
     }
 
     /**
-     * Finds complaints assigned to a staff member.
+     * Finds active tasks assigned to a staff member (ASSIGNED, IN_PROGRESS, REOPENED).
      */
     public List<Complaint> findByStaffId(Long staffId) {
-        String sql = "SELECT * FROM complaints WHERE staff_id = ? AND status NOT IN ('CLOSED') ORDER BY priority ASC, created_date ASC";
+        String sql = BASE_SELECT + " WHERE c.staff_id = ? AND c.status IN ('ASSIGNED', 'IN_PROGRESS', 'REOPENED') ORDER BY c.priority ASC, c.created_date ASC";
         return queryList(sql, ps -> ps.setLong(1, staffId));
     }
 
     /**
-     * Finds full task history assigned to a staff member (all statuses, most recent first).
+     * Finds completed tasks assigned to a staff member (RESOLVED, CLOSED, most recent first).
      */
     public List<Complaint> findHistoryByStaffId(Long staffId) {
-        String sql = "SELECT * FROM complaints WHERE staff_id = ? ORDER BY updated_date DESC";
+        String sql = BASE_SELECT + " WHERE c.staff_id = ? AND c.status IN ('RESOLVED', 'CLOSED') ORDER BY c.updated_date DESC";
         return queryList(sql, ps -> ps.setLong(1, staffId));
     }
 
@@ -272,11 +300,11 @@ public class ComplaintDao {
                                    String hostelBlock, String fromDate, String toDate,
                                    String query, String sortBy, String sortDir,
                                    int offset, int limit) {
-        StringBuilder sql = new StringBuilder("SELECT c.* FROM complaints c");
+        StringBuilder sql = new StringBuilder(BASE_SELECT);
         List<Object> params = new ArrayList<>();
 
         if (hostelBlock != null && !hostelBlock.isBlank()) {
-            sql.append(" JOIN students s ON c.student_id = s.student_id");
+            sql.append(" JOIN students stu ON c.student_id = stu.student_id");
         }
         sql.append(" WHERE 1=1");
 
@@ -293,7 +321,7 @@ public class ComplaintDao {
             params.add(Integer.parseInt(priority));
         }
         if (hostelBlock != null && !hostelBlock.isBlank()) {
-            sql.append(" AND s.hostel_block = ?");
+            sql.append(" AND stu.hostel_block = ?");
             params.add(hostelBlock);
         }
         if (fromDate != null && !fromDate.isBlank()) {
@@ -358,7 +386,7 @@ public class ComplaintDao {
         List<Object> params = new ArrayList<>();
 
         if (hostelBlock != null && !hostelBlock.isBlank()) {
-            sql.append(" JOIN students s ON c.student_id = s.student_id");
+            sql.append(" JOIN students stu ON c.student_id = stu.student_id");
         }
         sql.append(" WHERE 1=1");
 
@@ -375,7 +403,7 @@ public class ComplaintDao {
             params.add(Integer.parseInt(priority));
         }
         if (hostelBlock != null && !hostelBlock.isBlank()) {
-            sql.append(" AND s.hostel_block = ?");
+            sql.append(" AND stu.hostel_block = ?");
             params.add(hostelBlock);
         }
         if (fromDate != null && !fromDate.isBlank()) {
@@ -455,9 +483,8 @@ public class ComplaintDao {
      * Finds RESOLVED complaints older than the given days for auto-close.
      */
     public List<Complaint> findResolvedOlderThan(int days) {
-        String sql = """
-                SELECT * FROM complaints
-                WHERE status = 'RESOLVED' AND resolved_date < NOW() - INTERVAL ? DAY
+        String sql = BASE_SELECT + """
+                WHERE c.status = 'RESOLVED' AND c.resolved_date < NOW() - INTERVAL ? DAY
                 """;
         return queryList(sql, ps -> ps.setInt(1, days));
     }
@@ -467,7 +494,7 @@ public class ComplaintDao {
      */
     public List<Complaint> findOpen() {
         return queryList(
-                "SELECT * FROM complaints WHERE status IN ('NEW', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED') ORDER BY priority ASC, created_date ASC",
+                BASE_SELECT + " WHERE c.status IN ('NEW', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED') ORDER BY c.priority ASC, c.created_date ASC",
                 ps -> {});
     }
 
@@ -475,7 +502,7 @@ public class ComplaintDao {
      * Returns all complaints (for analytics).
      */
     public List<Complaint> findAll() {
-        return queryList("SELECT * FROM complaints ORDER BY created_date DESC", ps -> {});
+        return queryList(BASE_SELECT + " ORDER BY c.created_date DESC", ps -> {});
     }
 
     /**
