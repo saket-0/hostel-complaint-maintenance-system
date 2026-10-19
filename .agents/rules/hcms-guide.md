@@ -32,3 +32,7 @@
 
 ## Default behavior
 For any request that is not a pure question, follow .agents/workflows/do.md: triage, print the scope block, then execute. Skip the scope block only for trivial one-line edits in a file the user named. L-sized or architectural/redesign requests: do not execute. Tell the user in one line to run /epic with the same request, and stop.
+
+## Lessons
+Read docs/LESSONS.md before any bug, DB, or concurrency task. After fixing a non-obvious problem, or after being corrected by the user, append one line to docs/LESSONS.md.
+
