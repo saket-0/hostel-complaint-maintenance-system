@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HCMS - Hostel Complaint & Maintenance System for VIT Vellore">
+    <title>HCMS - Hostel Complaint & Maintenance System</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/chart.min.js" defer></script>
+    <script type="module" src="/js/app.js" defer></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav id="navbar" class="navbar" style="display:none;">
+        <div class="nav-brand">
+            <h1 class="nav-title">⚙ HCMS</h1>
+        </div>
+        <div class="nav-links" id="navLinks"></div>
+        <div class="nav-actions">
+            <button class="btn-icon notification-bell" id="notifBell" title="Notifications">
+                🔔 <span class="badge" id="notifBadge" style="display:none;">0</span>
+            </button>
+            <span class="user-name" id="userName"></span>
+            <button class="btn btn-outline btn-sm" id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="app">
+        <!-- Login / Register View -->
+        <section id="authView" class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1>⚙ HCMS</h1>
+                    <p>Hostel Complaint & Maintenance System</p>
+                    <p class="subtitle">VIT Vellore</p>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <h2>Login</h2>
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Login</button>
+                    <p class="auth-switch">Don't have an account? <a href="#" id="showRegister">Register</a></p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form" style="display:none;">
+                    <h2>Student Registration</h2>
+                    <div class="form-group">
+                        <label for="regName">Full Name</label>
+                        <input type="text" id="regName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">Email</label>
+                        <input type="email" id="regEmail" placeholder="your@vitstudent.ac.in" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Password</label>
+                        <input type="password" id="regPassword" placeholder="Min 6 characters" minlength="6" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regRoom">Room Number</label>
+                            <input type="text" id="regRoom" placeholder="201" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regBlock">Hostel Block</label>
+                            <input type="text" id="regBlock" placeholder="A" maxlength="1" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Register</button>
+                    <p class="auth-switch">Already have an account? <a href="#" id="showLogin">Login</a></p>
+                </form>
+            </div>
+        </section>
+
+        <!-- Student Dashboard -->
+        <section id="studentDashboard" class="dashboard" style="display:none;">
+            <div class="dashboard-header">
+                <h2>📋 My Complaints</h2>
+                <button class="btn btn-primary" id="newComplaintBtn">+ New Complaint</button>
+            </div>
+
+            <!-- New Complaint Form -->
+            <div id="newComplaintForm" class="card" style="display:none;">
+                <h3>Submit New Complaint</h3>
+                <form id="complaintForm">
+                    <div class="form-group">
+                        <label for="complaintCategory">Category</label>
+                        <select id="complaintCategory" required>
+                            <option value="">Select category...</option>
+                            <option value="ELECTRICAL">⚡ Electrical</option>
+                            <option value="PLUMBING">🔧 Plumbing</option>
+                            <option value="WIFI">📶 Wi-Fi</option>
+                            <option value="AC">❄️ AC</option>
+                            <option value="CARPENTRY">🪵 Carpentry</option>
+                            <option value="CLEANING">🧹 Cleaning</option>
+                            <option value="OTHER">📦 Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="complaintDesc">Description</label>
+                        <textarea id="complaintDesc" rows="4" placeholder="Describe the issue in detail (min 10 characters)..." minlength="10" maxlength="2000" required></textarea>
+                        <span class="char-count" id="charCount">0 / 2000</span>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Submit Complaint</button>
+                        <button type="button" class="btn btn-outline" id="cancelComplaint">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Complaints List -->
+            <div id="studentComplaints" class="complaints-list">
+                <div class="loading" id="studentLoading">Loading complaints...</div>
+                <div class="empty-state" id="studentEmpty" style="display:none;">
+                    <p>🎉 No complaints yet!</p>
+                    <p>Click "New Complaint" to report an issue.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Dashboard -->
+        <section id="adminDashboard" class="dashboard" style="display:none;">
+            <div class="dashboard-header">
+                <h2>🏛 Admin Dashboard</h2>
+                <div class="tab-bar">
+                    <button class="tab active" data-tab="complaints">Complaints</button>
+                    <button class="tab" data-tab="analytics">Analytics</button>
+                    <button class="tab" data-tab="staff">Staff</button>
+                </div>
+            </div>
+
+            <!-- Complaints Tab -->
+            <div id="adminComplaintsTab" class="tab-content">
+                <div class="filters-bar">
+                    <select id="filterStatus">
+                        <option value="">All Status</option>
+                        <option value="NEW">New</option>
+                        <option value="ASSIGNED">Assigned</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="CLOSED">Closed</option>
+                        <option value="REOPENED">Reopened</option>
+                    </select>
+                    <select id="filterCategory">
+                        <option value="">All Categories</option>
+                        <option value="ELECTRICAL">Electrical</option>
+                        <option value="PLUMBING">Plumbing</option>
+                        <option value="WIFI">Wi-Fi</option>
+                        <option value="AC">AC</option>
+                        <option value="CARPENTRY">Carpentry</option>
+                        <option value="CLEANING">Cleaning</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <select id="filterPriority">
+                        <option value="">All Priority</option>
+                        <option value="1">High</option>
+                        <option value="2">Medium</option>
+                        <option value="3">Low</option>
+                    </select>
+                    <input type="text" id="filterSearch" placeholder="Search...">
+                    <button class="btn btn-outline btn-sm" id="exportCsvBtn">📥 Export CSV</button>
+                </div>
+                <div id="adminComplaints" class="complaints-table-wrapper">
+                    <div class="loading">Loading...</div>
+                </div>
+                <div class="pagination" id="adminPagination"></div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="adminAnalyticsTab" class="tab-content" style="display:none;">
+                <div class="analytics-grid" id="analyticsGrid">
+                    <div class="stat-card">
+                        <h4>Total Complaints</h4>
+                        <p class="stat-value" id="statTotal">-</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Avg Resolution</h4>
+                        <p class="stat-value" id="statAvgRes">-</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>SLA Breach Rate</h4>
+                        <p class="stat-value" id="statBreach">-</p>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h4>By Status</h4>
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h4>By Category</h4>
+                        <canvas id="chartCategory"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h4>By Priority</h4>
+                        <canvas id="chartPriority"></canvas>
+                    </div>
+                    <div class="chart-card chart-wide">
+                        <h4>Daily Trend (30 days)</h4>
+                        <canvas id="chartTrend"></canvas>
+                    </div>
+                </div>
+                <div class="card" id="staffSummaryCard">
+                    <h4>Staff Performance</h4>
+                    <table class="data-table" id="staffSummaryTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Specialization</th>
+                                <th>Active Tasks</th>
+                                <th>Avg Rating</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Staff Management Tab -->
+            <div id="adminStaffTab" class="tab-content" style="display:none;">
+                <div id="staffList" class="staff-grid"></div>
+            </div>
+        </section>
+
+        <!-- Staff Dashboard -->
+        <section id="staffDashboard" class="dashboard" style="display:none;">
+            <div class="dashboard-header">
+                <h2>🔧 My Tasks</h2>
+                <div class="staff-availability">
+                    <label class="toggle-label">
+                        <span>Available</span>
+                        <input type="checkbox" id="availabilityToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="staffTasks" class="complaints-list">
+                <div class="loading">Loading tasks...</div>
+            </div>
+        </section>
+
+        <!-- Complaint Detail Modal -->
+        <div id="complaintModal" class="modal" style="display:none;">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <button class="modal-close" id="closeModal">✕</button>
+                <div id="complaintDetail"></div>
+            </div>
+        </div>
+
+        <!-- Assign Modal -->
+        <div id="assignModal" class="modal" style="display:none;">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-sm">
+                <button class="modal-close" id="closeAssignModal">✕</button>
+                <h3>Assign Complaint</h3>
+                <div id="assignStaffList"></div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" id="autoAssignBtn">🤖 Auto-Assign</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Panel -->
+        <div id="notifPanel" class="notif-panel" style="display:none;">
+            <h3>Notifications</h3>
+            <div id="notifList" class="notif-list"></div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="appFooter" style="display:none;">
+        <div class="footer-content">
+            <span>Built with ☕ Java <span id="javaVersion">17</span></span>
+            <span>⏱ Uptime: <span id="uptime">00:00:00</span></span>
+            <span>🧵 Threads: <span id="threadCount">-</span></span>
+            <span>📬 Queue: <span id="queueDepth">-</span></span>
+            <span class="footer-brand">HCMS v1.0 — VIT Vellore</span>
+        </div>
+    </footer>
+</body>
+</html>

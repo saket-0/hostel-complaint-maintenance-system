@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.36
+    container_name: hcms-mysql
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: hcms
+      MYSQL_USER: hcms
+      MYSQL_PASSWORD: hcmspass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - hcms-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hcms-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: "jdbc:mysql://mysql:3306/hcms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8"
+      DB_USER: "hcms"
+      DB_PASSWORD: "hcmspass"
+      DB_POOL_SIZE: "10"
+      PORT: "8080"
+      APP_PROFILE: "dev"
+      JWT_SECRET: "vit-hcms-2026-very-secure-jwt-secret-key-production-ready"
+      SLA_HIGH_HOURS: "24"
+      SLA_MEDIUM_HOURS: "72"
+      SLA_LOW_HOURS: "168"
+      SLA_ESCALATION_CHECK_MINUTES: "15"
+      SLA_AUTO_CLOSE_DAYS: "7"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    networks:
+      - hcms-network
+
+volumes:
+  mysql_data:
+    name: hcms_mysql_data
+
+networks:
+  hcms-network:
+    name: hcms-network

@@ -1,0 +1,58 @@
+name: HCMS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    name: Build, Test & Package
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0.36
+        env:
+          MYSQL_ROOT_PASSWORD: rootsecret
+          MYSQL_DATABASE: hcms
+          MYSQL_USER: hcms
+          MYSQL_PASSWORD: hcmspass
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h localhost -u root -prootsecret" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compile and Run Unit & Integration Tests
+        env:
+          DB_URL: "jdbc:mysql://localhost:3306/hcms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+          DB_USER: "hcms"
+          DB_PASSWORD: "hcmspass"
+          APP_PROFILE: "dev"
+        run: mvn clean verify -B
+
+      - name: Generate JaCoCo Code Coverage Report
+        run: mvn jacoco:report-aggregate || true
+
+      - name: Upload Test Results & Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-and-coverage-reports
+          path: |
+            **/target/surefire-reports/
+            **/target/site/jacoco/
+
+      - name: Build Multi-Stage Docker Image
+        run: docker build -t vit-hcms:latest .
