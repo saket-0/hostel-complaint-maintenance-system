@@ -38,9 +38,14 @@ export async function login(email, password) {
 
     if (data && data.token) {
         setToken(data.token);
-        currentUser = data.user;
-        showToast(`Welcome back, ${data.user.name}!`, 'success');
-        return data.user;
+        if (data.user) {
+            currentUser = data.user;
+        } else {
+            currentUser = await apiRequest('/auth/me');
+        }
+        const displayName = currentUser && currentUser.name ? currentUser.name : 'User';
+        showToast(`Welcome back, ${displayName}!`, 'success');
+        return currentUser;
     }
     throw new Error('Login failed: Invalid server response');
 }

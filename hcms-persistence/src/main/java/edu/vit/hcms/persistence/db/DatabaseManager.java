@@ -95,6 +95,7 @@ public class DatabaseManager implements AutoCloseable {
                 .locations("classpath:db/migration")
                 .baselineOnMigrate(true)
                 .load();
+        flyway.repair();
         flyway.migrate();
         log.info("Flyway migrations completed");
     }

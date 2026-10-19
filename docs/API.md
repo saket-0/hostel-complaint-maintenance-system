@@ -76,7 +76,15 @@ When an error occurs, the server responds with a consistent JSON body and no lea
   ```json
   {
     "message": "Login successful",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "userId": 1,
+      "name": "System Administrator",
+      "email": "admin@vit.ac.in",
+      "role": "ADMIN",
+      "dashboard": "admin-dashboard",
+      "permissions": ["all"]
+    }
   }
   ```
   *Also sets HttpOnly `token` cookie for browser sessions.*

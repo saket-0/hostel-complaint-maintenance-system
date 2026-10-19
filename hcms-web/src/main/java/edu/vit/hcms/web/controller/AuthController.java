@@ -43,10 +43,11 @@ public class AuthController {
         ctx.status(201).json(response);
     }
 
-    /** POST /api/v1/auth/login - Returns JWT token. */
+    /** POST /api/v1/auth/login - Returns JWT token and user info. */
     public void login(Context ctx) {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
         String token = authService.login(req.email(), req.password());
+        User user = userDao.findByEmail(req.email().trim().toLowerCase()).orElseThrow();
 
         // Set HttpOnly cookie
         ctx.cookie("token", token, 86400);
@@ -54,6 +55,7 @@ public class AuthController {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", "Login successful");
         response.put("token", token);
+        response.put("user", buildUserResponse(user));
         ctx.json(response);
     }
 
@@ -67,7 +69,10 @@ public class AuthController {
     public void me(Context ctx) {
         Long userId = ctx.attribute("userId");
         User user = userDao.findById(userId).orElseThrow();
+        ctx.json(buildUserResponse(user));
+    }
 
+    private Map<String, Object> buildUserResponse(User user) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("userId", user.getUserId());
         response.put("name", user.getName());
@@ -86,8 +91,7 @@ public class AuthController {
             response.put("specialization", ms.getSpecialization().name());
             response.put("available", ms.isAvailable());
         }
-
-        ctx.json(response);
+        return response;
     }
 
     /** POST /api/v1/auth/change-password */
