@@ -47,6 +47,31 @@ public class StaffController {
         ctx.json(Map.of("tasks", result));
     }
 
+    /** GET /api/v1/staff/tasks/history - Full task history for staff. */
+    public void getTaskHistory(Context ctx) {
+        Long staffId = ctx.attribute("userId");
+        List<Complaint> tasks = complaintManager.getStaffHistory(staffId);
+
+        List<Map<String, Object>> result = tasks.stream().map(c -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("complaintId", c.getComplaintId());
+            m.put("category", c.getCategory().name());
+            m.put("categoryDisplay", c.getCategory().getDisplayName());
+            m.put("description", c.getDescription());
+            m.put("priority", c.getPriority().name());
+            m.put("priorityLevel", c.getPriority().getLevel());
+            m.put("status", c.getStatus().name());
+            m.put("statusDisplay", c.getStatus().getDisplayName());
+            m.put("createdDate", c.getCreatedDate().toString());
+            m.put("updatedDate", c.getUpdatedDate().toString());
+            m.put("resolvedDate", c.getResolvedDate() != null ? c.getResolvedDate().toString() : null);
+            userDao.findById(c.getStudentId()).ifPresent(u -> m.put("studentName", u.getName()));
+            return m;
+        }).collect(Collectors.toList());
+
+        ctx.json(Map.of("tasks", result));
+    }
+
     /** POST /api/v1/staff/tasks/{id}/accept - Accept an assigned task (transitions to IN_PROGRESS). */
     public void acceptTask(Context ctx) {
         String id = ctx.pathParam("id");

@@ -99,7 +99,60 @@ a:hover {
 
 .nav-links {
     display: flex;
-    gap: 16px;
+    gap: 12px;
+    align-items: center;
+}
+
+.nav-link {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--navy);
+    padding: 6px 14px;
+    border: 2px solid transparent;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    cursor: pointer;
+}
+
+.nav-link:hover {
+    border: 2px solid var(--border-color);
+    background: var(--white);
+    box-shadow: 2px 2px 0 var(--border-color);
+    transform: translate(-1px, -1px);
+}
+
+.nav-link.active {
+    background: var(--cyan);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0 var(--border-color);
+    color: var(--navy);
+}
+
+.history-card {
+    background: var(--white);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--shadow-hard);
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.history-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--border-color);
+}
+
+.history-feedback-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #FEF9C3;
+    color: #854D0E;
+    border: 1.5px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 800;
 }
 
 .nav-actions {

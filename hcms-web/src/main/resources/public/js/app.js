@@ -9,6 +9,7 @@ import { initAdminView } from './admin.js';
 import { initStaffView } from './staff.js';
 import { initNotifications, stopNotificationPolling } from './notifications.js';
 import { initMetricsFooter } from './metrics.js';
+import { initHistoryView } from './history.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     initMetricsFooter();
@@ -131,12 +132,15 @@ async function handleRoute() {
     const studentDash = document.getElementById('studentDashboard');
     const adminDash = document.getElementById('adminDashboard');
     const staffDash = document.getElementById('staffDashboard');
+    const historyView = document.getElementById('historyView');
     const userNameEl = document.getElementById('userName');
+    const navLinks = document.getElementById('navLinks');
 
     // Default hide all views
     studentDash.style.display = 'none';
     adminDash.style.display = 'none';
     staffDash.style.display = 'none';
+    if (historyView) historyView.style.display = 'none';
 
     if (!user || hash === '#/login' || hash === '#/register') {
         navbar.style.display = 'none';
@@ -162,16 +166,44 @@ async function handleRoute() {
         userNameEl.textContent = `${user.name} (${user.role})`;
     }
 
+    // Role-based navigation tabs in navbar
+    if (navLinks) {
+        const isHistory = hash === '#/history';
+        if (user.role === 'STUDENT') {
+            navLinks.innerHTML = `
+                <a href="#/dashboard" class="nav-link ${!isHistory ? 'active' : ''}">📋 My Complaints</a>
+                <a href="#/history" class="nav-link ${isHistory ? 'active' : ''}">📜 Complaint History</a>
+            `;
+        } else if (user.role === 'STAFF') {
+            navLinks.innerHTML = `
+                <a href="#/dashboard" class="nav-link ${!isHistory ? 'active' : ''}">🔧 Active Tasks</a>
+                <a href="#/history" class="nav-link ${isHistory ? 'active' : ''}">📜 Completed History</a>
+            `;
+        } else if (user.role === 'ADMIN') {
+            navLinks.innerHTML = `
+                <a href="#/dashboard" class="nav-link ${!isHistory ? 'active' : ''}">📋 Live Management</a>
+                <a href="#/history" class="nav-link ${isHistory ? 'active' : ''}">📜 Full Audit History</a>
+            `;
+        }
+    }
+
     initNotifications();
 
-    if (user.role === 'STUDENT') {
-        studentDash.style.display = 'block';
-        initStudentView();
-    } else if (user.role === 'ADMIN') {
-        adminDash.style.display = 'block';
-        initAdminView();
-    } else if (user.role === 'STAFF') {
-        staffDash.style.display = 'block';
-        initStaffView();
+    if (hash === '#/history') {
+        if (historyView) {
+            historyView.style.display = 'block';
+            initHistoryView(user.role);
+        }
+    } else {
+        if (user.role === 'STUDENT') {
+            studentDash.style.display = 'block';
+            initStudentView();
+        } else if (user.role === 'ADMIN') {
+            adminDash.style.display = 'block';
+            initAdminView();
+        } else if (user.role === 'STAFF') {
+            staffDash.style.display = 'block';
+            initStaffView();
+        }
     }
 }

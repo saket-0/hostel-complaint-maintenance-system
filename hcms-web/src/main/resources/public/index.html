@@ -280,6 +280,61 @@
             </div>
         </section>
 
+        <!-- Complaint History & Audit Trail View (All Roles) -->
+        <section id="historyView" class="dashboard" style="display:none;">
+            <div class="dashboard-header">
+                <h2>📜 Complaint History & Audit Trail</h2>
+                <div class="history-actions" id="historyActions"></div>
+            </div>
+
+            <!-- Summary statistics for historical view -->
+            <div class="analytics-grid" id="historyStatsGrid" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <h4>Archived Records</h4>
+                    <p class="stat-value" id="historyTotalCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Resolved</h4>
+                    <p class="stat-value" id="historyResolvedCount" style="color: var(--teal);">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Closed & Verified</h4>
+                    <p class="stat-value" id="historyClosedCount" style="color: var(--navy);">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Avg User Rating</h4>
+                    <p class="stat-value" id="historyAvgRating" style="color: var(--amber);">—</p>
+                </div>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div class="card" style="margin-bottom: 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                <input type="text" id="historySearchInput" placeholder="🔍 Search Complaint ID, description, student, staff..." style="flex:2; min-width:240px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-body);">
+                <select id="historyCategoryFilter" style="flex:1; min-width:160px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-heading); font-weight:700;">
+                    <option value="">All Categories</option>
+                    <option value="ELECTRICAL">⚡ Electrical</option>
+                    <option value="PLUMBING">🔧 Plumbing</option>
+                    <option value="WIFI">📶 Wi-Fi / Network</option>
+                    <option value="HVAC">❄ AC / HVAC</option>
+                    <option value="FURNITURE">🪑 Furniture</option>
+                    <option value="CLEANING">🧹 Cleaning</option>
+                </select>
+                <select id="historyStatusFilter" style="flex:1; min-width:160px; padding:10px 14px; border:2.5px solid var(--border-color); box-shadow:2px 2px 0 var(--border-color); font-family:var(--font-heading); font-weight:700;">
+                    <option value="">All Statuses</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="CLOSED">Closed</option>
+                    <option value="REOPENED">Reopened</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="ASSIGNED">Assigned</option>
+                </select>
+            </div>
+
+            <!-- History List Container -->
+            <div id="historyComplaintsList" class="complaints-list">
+                <div class="loading">Loading historical complaints...</div>
+            </div>
+        </section>
+
         <!-- Complaint Detail Modal -->
         <div id="complaintModal" class="modal" style="display:none;">
             <div class="modal-overlay"></div>

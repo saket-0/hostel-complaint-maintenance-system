@@ -355,6 +355,13 @@ public class ComplaintManager {
         return complaintDao.findByStaffId(staffId);
     }
 
+    /**
+     * Returns full task history for a staff member.
+     */
+    public List<Complaint> getStaffHistory(Long staffId) {
+        return complaintDao.findHistoryByStaffId(staffId);
+    }
+
     // ---- Private helpers ----
 
     /**

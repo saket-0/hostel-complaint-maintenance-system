@@ -200,6 +200,10 @@ public class HcmsApplication {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.exportCsv(ctx);
         });
+        app.get("/api/v1/admin/export", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.exportCsv(ctx);
+        });
 
         // ---- Staff Routes ----
         app.get("/api/v1/staff/tasks", ctx -> {
@@ -217,6 +221,10 @@ public class HcmsApplication {
         app.put("/api/v1/staff/availability", ctx -> {
             authFilter.requireRole(ctx, "STAFF");
             staffController.updateAvailability(ctx);
+        });
+        app.get("/api/v1/staff/tasks/history", ctx -> {
+            authFilter.requireRole(ctx, "STAFF");
+            staffController.getTaskHistory(ctx);
         });
 
         // ---- Common Routes ----

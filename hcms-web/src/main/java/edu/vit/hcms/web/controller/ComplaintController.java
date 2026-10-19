@@ -187,6 +187,7 @@ public class ComplaintController {
             hm.put("changedBy", h.getChangedBy());
             hm.put("note", h.getNote());
             hm.put("changedAt", h.getChangedAt().toString());
+            userDao.findById(h.getChangedBy()).ifPresent(u -> hm.put("changedByName", u.getName()));
             return hm;
         }).collect(Collectors.toList())));
     }

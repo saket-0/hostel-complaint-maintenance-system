@@ -5,6 +5,7 @@
  */
 import { apiRequest } from './api.js';
 import { showToast, escapeHtml } from './toast.js';
+import { getCurrentUser } from './auth.js';
 
 export function initStudentView() {
     const newBtn = document.getElementById('newComplaintBtn');
@@ -146,13 +147,21 @@ export async function openComplaintModal(complaintId) {
     modal.querySelector('.modal-overlay').onclick = () => { modal.style.display = 'none'; };
 
     try {
-        const [complaint, history, comments] = await Promise.all([
+        const [complaint, historyRes, commentsRes] = await Promise.all([
             apiRequest(`/complaints/${complaintId}`),
             apiRequest(`/complaints/${complaintId}/history`),
             apiRequest(`/complaints/${complaintId}/comments`)
         ]);
 
-        renderComplaintDetail(complaint, history, comments);
+        const historyList = (historyRes && Array.isArray(historyRes.history)) 
+            ? historyRes.history 
+            : (Array.isArray(historyRes) ? historyRes : (complaint && Array.isArray(complaint.history) ? complaint.history : []));
+
+        const commentsList = (commentsRes && Array.isArray(commentsRes.comments)) 
+            ? commentsRes.comments 
+            : (Array.isArray(commentsRes) ? commentsRes : (complaint && Array.isArray(complaint.comments) ? complaint.comments : []));
+
+        renderComplaintDetail(complaint, historyList, commentsList);
     } catch (err) {
         detailEl.innerHTML = `<div class="toast toast-error">${escapeHtml(err.message)}</div>`;
     }
@@ -162,32 +171,53 @@ function renderComplaintDetail(c, history, comments) {
     const detailEl = document.getElementById('complaintDetail');
     if (!detailEl) return;
 
+    const currentUser = getCurrentUser();
+    const isStudent = currentUser && currentUser.role === 'STUDENT';
+    const isOwnerStudent = isStudent && (String(currentUser.userId) === String(c.studentId));
+    const isAdmin = currentUser && currentUser.role === 'ADMIN';
+    const isStaff = currentUser && currentUser.role === 'STAFF';
+
     const isResolved = c.status === 'RESOLVED';
     const isClosed = c.status === 'CLOSED';
-    const hasFeedback = c.feedbackRating !== undefined && c.feedbackRating !== null;
+    const hasFeedback = (c.feedbackRating !== undefined && c.feedbackRating !== null) || (c.feedback && c.feedback.rating !== undefined);
+    const feedbackRating = c.feedbackRating || (c.feedback && c.feedback.rating);
+    const feedbackComment = c.feedbackComment || (c.feedback && c.feedback.comment);
 
+    // Action buttons: Close / Reopen
+    // ONLY the student who submitted the complaint can close or reopen! (Admin can also close)
+    // STAFF can NEVER close or reopen!
     let actionButtons = '';
-    if (isResolved) {
+    if (isResolved && isOwnerStudent) {
         actionButtons = `
-            <div class="form-actions" style="margin-top: 15px;">
+            <div class="form-actions" style="margin-top: 15px; display: flex; gap: 10px;">
                 <button class="btn btn-teal btn-sm" id="btnActionClose">Close Complaint</button>
                 <button class="btn btn-amber btn-sm" id="btnActionReopen">Reopen Complaint</button>
             </div>
         `;
+    } else if (isResolved && isAdmin) {
+        actionButtons = `
+            <div class="form-actions" style="margin-top: 15px;">
+                <button class="btn btn-teal btn-sm" id="btnActionClose">Close Complaint (Admin)</button>
+            </div>
+        `;
     }
 
+    // Feedback section:
+    // If feedback exists: EVERYONE (Student, Staff, Admin) can view it
+    // If feedback does not exist: ONLY the owner student can submit it when resolved/closed
+    // Staff & Admin see a polite waiting note, never an interactive form
     let feedbackSection = '';
     if (hasFeedback) {
         feedbackSection = `
-            <div class="card" style="margin-top: 15px; background: #fdfbf7;">
+            <div class="card" style="margin-top: 15px; background: #fdfbf7; border: 2px solid var(--border-color); box-shadow: 2px 2px 0 var(--border-color);">
                 <h4>⭐ Student Feedback</h4>
-                <p><strong>Rating:</strong> ${'★'.repeat(c.feedbackRating)}${'☆'.repeat(5 - c.feedbackRating)} (${c.feedbackRating}/5)</p>
-                <p><strong>Comment:</strong> ${escapeHtml(c.feedbackComment || 'No comment provided')}</p>
+                <p><strong>Rating:</strong> ${'★'.repeat(feedbackRating)}${'☆'.repeat(5 - feedbackRating)} (${feedbackRating}/5)</p>
+                <p><strong>Comment:</strong> ${escapeHtml(feedbackComment || 'No comment provided')}</p>
             </div>
         `;
-    } else if (isResolved || isClosed) {
+    } else if (isOwnerStudent && (isResolved || isClosed)) {
         feedbackSection = `
-            <div class="card" style="margin-top: 15px; background: #eef9fc;">
+            <div class="card" style="margin-top: 15px; background: #eef9fc; border: 2px solid var(--border-color); box-shadow: 2px 2px 0 var(--border-color);">
                 <h4>⭐ Provide Feedback</h4>
                 <form id="feedbackForm">
                     <div class="form-group">
@@ -208,15 +238,22 @@ function renderComplaintDetail(c, history, comments) {
                 </form>
             </div>
         `;
+    } else if (isResolved && (isStaff || isAdmin)) {
+        feedbackSection = `
+            <div style="margin-top: 14px; padding: 10px 14px; background: #F8FAFC; border: 1.5px dashed var(--border-color); font-size: 0.85rem; color: var(--grey);">
+                ⏳ <em>Awaiting student review and feedback.</em>
+            </div>
+        `;
     }
 
     // Timeline items
     let timelineHtml = '<div class="timeline">';
     if (history && history.length > 0) {
         history.forEach(h => {
+            const author = h.changedByName ? ` • ${escapeHtml(h.changedByName)}` : '';
             timelineHtml += `
                 <div class="timeline-item">
-                    <div class="timeline-time">${formatDate(h.changedAt)}</div>
+                    <div class="timeline-time">${formatDate(h.changedAt)}${author}</div>
                     <div class="timeline-title">${escapeHtml(h.oldStatus ? `${h.oldStatus} ➔ ${h.newStatus}` : h.newStatus)}</div>
                     ${h.note ? `<div class="timeline-note">📝 ${escapeHtml(h.note)}</div>` : ''}
                 </div>
@@ -345,8 +382,11 @@ function renderComplaintDetail(c, history, comments) {
                 const updatedComments = await apiRequest(`/complaints/${c.complaintId}/comments`);
                 const commentsList = document.getElementById('commentsList');
                 if (commentsList) {
+                    const cItems = (updatedComments && Array.isArray(updatedComments.comments))
+                        ? updatedComments.comments
+                        : (Array.isArray(updatedComments) ? updatedComments : []);
                     let cHtml = '';
-                    updatedComments.forEach(cm => {
+                    cItems.forEach(cm => {
                         cHtml += `
                             <div class="comment-item">
                                 <div class="comment-header">
@@ -357,7 +397,7 @@ function renderComplaintDetail(c, history, comments) {
                             </div>
                         `;
                     });
-                    commentsList.innerHTML = cHtml;
+                    commentsList.innerHTML = cHtml || '<p style="color: #666; font-size: 0.85rem; margin-bottom: 10px;">No comments yet.</p>';
                 }
                 showToast('Comment added', 'info');
             } catch (err) {

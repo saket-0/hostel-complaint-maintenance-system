@@ -145,20 +145,35 @@ INSERT INTO complaints (complaint_id, student_id, staff_id, category, descriptio
     ('HCM-2026-000039', @s9, @staff1, 'ELECTRICAL', 'Fan fixed but started wobbling again after 2 days', 2, 'REOPENED', NOW() - INTERVAL 6 DAY, NOW() + INTERVAL 18 HOUR),
     ('HCM-2026-000040', @s10, @staff2, 'PLUMBING', 'Pipe repair done but leaking again from a different joint', 1, 'REOPENED', NOW() - INTERVAL 4 DAY, NOW() + INTERVAL 20 HOUR);
 
--- ============ COMPLAINT HISTORY for some complaints ============
-INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at) VALUES
-    ('HCM-2026-000009', 'NEW', 'ASSIGNED', @admin_id, 'Assigned to Arun for electrical inspection', NOW() - INTERVAL 22 HOUR),
-    ('HCM-2026-000016', 'NEW', 'ASSIGNED', @admin_id, 'Urgent: sparking switch board, assigned immediately', NOW() - INTERVAL 9 HOUR),
-    ('HCM-2026-000016', 'ASSIGNED', 'IN_PROGRESS', @staff1, 'Started inspection, need to cut power first', NOW() - INTERVAL 8 HOUR),
-    ('HCM-2026-000024', 'NEW', 'ASSIGNED', @admin_id, 'Routine maintenance assignment', NOW() - INTERVAL 4 DAY),
-    ('HCM-2026-000024', 'ASSIGNED', 'IN_PROGRESS', @staff2, 'Ordered replacement filter', NOW() - INTERVAL 3 DAY),
-    ('HCM-2026-000024', 'IN_PROGRESS', 'RESOLVED', @staff2, 'Filter replaced and tested', NOW() - INTERVAL 2 DAY),
-    ('HCM-2026-000032', 'NEW', 'ASSIGNED', @admin_id, 'Assigned', NOW() - INTERVAL 14 DAY),
-    ('HCM-2026-000032', 'ASSIGNED', 'IN_PROGRESS', @staff1, 'Checking wiring', NOW() - INTERVAL 13 DAY),
-    ('HCM-2026-000032', 'IN_PROGRESS', 'RESOLVED', @staff1, 'Socket replaced', NOW() - INTERVAL 12 DAY),
-    ('HCM-2026-000032', 'RESOLVED', 'CLOSED', @s2, 'Working fine now, thank you', NOW() - INTERVAL 11 DAY),
-    ('HCM-2026-000039', 'IN_PROGRESS', 'RESOLVED', @staff1, 'Fan tightened and balanced', NOW() - INTERVAL 3 DAY),
-    ('HCM-2026-000039', 'RESOLVED', 'REOPENED', @s9, 'Fan started wobbling again after 2 days', NOW() - INTERVAL 1 DAY);
+-- ============ COMPLAINT HISTORY (Audit trail for all complaints) ============
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, NULL, 'NEW', student_id, 'Complaint registered by student', created_date
+FROM complaints;
+
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, 'NEW', 'ASSIGNED', @admin_id, 'Assigned to maintenance staff', DATE_ADD(created_date, INTERVAL 1 HOUR)
+FROM complaints
+WHERE status IN ('ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED');
+
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, 'ASSIGNED', 'IN_PROGRESS', COALESCE(staff_id, @staff1), 'Task accepted, work in progress', DATE_ADD(created_date, INTERVAL 2 HOUR)
+FROM complaints
+WHERE status IN ('IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED');
+
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, 'IN_PROGRESS', 'RESOLVED', COALESCE(staff_id, @staff1), 'Maintenance work completed and verified', COALESCE(resolved_date, DATE_ADD(created_date, INTERVAL 5 HOUR))
+FROM complaints
+WHERE status IN ('RESOLVED', 'CLOSED', 'REOPENED');
+
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, 'RESOLVED', 'CLOSED', student_id, 'Student verified resolution and closed complaint', COALESCE(updated_date, DATE_ADD(created_date, INTERVAL 7 HOUR))
+FROM complaints
+WHERE status = 'CLOSED';
+
+INSERT INTO complaint_history (complaint_id, old_status, new_status, changed_by, note, changed_at)
+SELECT complaint_id, 'RESOLVED', 'REOPENED', student_id, 'Issue reoccurred, reopened by student for inspection', COALESCE(updated_date, DATE_ADD(created_date, INTERVAL 8 HOUR))
+FROM complaints
+WHERE status = 'REOPENED';
 
 -- ============ FEEDBACK for closed/resolved complaints ============
 INSERT INTO feedback (complaint_id, rating, comment, created_at) VALUES

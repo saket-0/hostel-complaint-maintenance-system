@@ -257,6 +257,14 @@ public class ComplaintDao {
     }
 
     /**
+     * Finds full task history assigned to a staff member (all statuses, most recent first).
+     */
+    public List<Complaint> findHistoryByStaffId(Long staffId) {
+        String sql = "SELECT * FROM complaints WHERE staff_id = ? ORDER BY updated_date DESC";
+        return queryList(sql, ps -> ps.setLong(1, staffId));
+    }
+
+    /**
      * Advanced search with filters, sorting, and pagination.
      * Builds WHERE clause dynamically with parameter binding (no SQL injection).
      */
