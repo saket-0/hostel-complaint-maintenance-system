@@ -66,6 +66,26 @@ function setupAuthFormSubmissions() {
                 showToast(err.message, 'error');
             }
         };
+
+        // Quick test login buttons
+        const quickBtns = document.querySelectorAll('.btn-quick-login');
+        const emailInput = document.getElementById('loginEmail');
+        const passwordInput = document.getElementById('loginPassword');
+
+        quickBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                const email = btn.dataset.email;
+                const password = btn.dataset.password;
+                if (emailInput) emailInput.value = email;
+                if (passwordInput) passwordInput.value = password;
+                if (typeof loginForm.requestSubmit === 'function') {
+                    loginForm.requestSubmit();
+                } else {
+                    loginForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            };
+        });
     }
 
     const registerForm = document.getElementById('registerForm');
