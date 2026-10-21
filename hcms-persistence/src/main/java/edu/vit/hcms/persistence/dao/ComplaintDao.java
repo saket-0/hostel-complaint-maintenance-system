@@ -37,20 +37,36 @@ public class ComplaintDao {
 
     private static final String BASE_SELECT = """
             SELECT c.*, u.name AS assigned_staff_name, s.specialization AS assigned_staff_specialization,
+                   stu.name AS student_name, stu.email AS student_email,
+                   st.room_number AS student_room_number, st.hostel_block AS student_hostel_block,
                    (fb.feedback_id IS NOT NULL) AS feedback_given
             FROM complaints c
             LEFT JOIN users u ON c.staff_id = u.user_id
             LEFT JOIN staff s ON c.staff_id = s.staff_id
+            LEFT JOIN users stu ON c.student_id = stu.user_id
+            LEFT JOIN students st ON c.student_id = st.student_id
             LEFT JOIN feedback fb ON c.complaint_id = fb.complaint_id
             """;
 
     private static final RowMapper<Complaint> COMPLAINT_MAPPER = rs -> {
         String staffName = null;
         String staffSpec = null;
+        String studentName = null;
+        String studentEmail = null;
+        String studentRoomNumber = null;
+        String studentHostelBlock = null;
         boolean feedbackGiven = false;
         try {
             staffName = rs.getString("assigned_staff_name");
             staffSpec = rs.getString("assigned_staff_specialization");
+        } catch (SQLException ignored) {
+            // Optional columns if not present in custom projection
+        }
+        try {
+            studentName = rs.getString("student_name");
+            studentEmail = rs.getString("student_email");
+            studentRoomNumber = rs.getString("student_room_number");
+            studentHostelBlock = rs.getString("student_hostel_block");
         } catch (SQLException ignored) {
             // Optional columns if not present in custom projection
         }
@@ -76,6 +92,10 @@ public class ComplaintDao {
                 .version(rs.getInt("version"))
                 .assignedStaffName(staffName)
                 .assignedStaffSpecialization(staffSpec)
+                .studentName(studentName)
+                .studentEmail(studentEmail)
+                .studentRoomNumber(studentRoomNumber)
+                .studentHostelBlock(studentHostelBlock)
                 .feedbackGiven(feedbackGiven)
                 .build();
     };

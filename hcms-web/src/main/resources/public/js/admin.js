@@ -47,6 +47,7 @@ export function initAdminView(subroute = 'triage') {
     setupTriageToolbar();
     setupAllComplaintsToolbar();
     setupCsvExport();
+    setupUserManagement();
     showAdminSubView(subroute);
 }
 
@@ -65,7 +66,7 @@ export function showAdminSubView(subroute) {
     if (subroute === 'analytics') {
         loadAnalytics();
     } else if (subroute === 'staff') {
-        loadStaffList();
+        loadUserManagementView();
     } else if (subroute === 'complaints') {
         loadAdminComplaints();
     } else if (subroute === 'triage') {
@@ -496,7 +497,7 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
                         <th>Priority</th>
                         <th>Category</th>
                         <th>Description</th>
-                        <th>Location</th>
+                        <th>Location & Student</th>
                         <th>Status</th>
                         <th>Assigned Staff</th>
                         <th>Due Date</th>
@@ -509,7 +510,16 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
     complaints.forEach(c => {
         const pLabel = c.priority === 1 ? 'High' : c.priority === 2 ? 'Medium' : 'Low';
         const pClass = c.priority === 1 ? 'priority-high' : c.priority === 2 ? 'priority-medium' : 'priority-low';
-        const location = `${escapeHtml(c.hostelBlock || '')} - ${escapeHtml(c.roomNumber || '')}`;
+        const blockVal = c.hostelBlock || c.studentHostelBlock || '';
+        const roomVal = c.roomNumber || c.studentRoomNumber || '';
+        const locationText = (blockVal || roomVal)
+            ? `${escapeHtml(blockVal)}${blockVal && roomVal ? ' - ' : ''}${escapeHtml(roomVal)}`
+            : '<span style="color:var(--grey); font-style:italic;">N/A</span>';
+        const studentMeta = c.studentName
+            ? `<div style="font-size:0.78rem; font-weight:600; color:var(--navy); margin-top:3px; display:flex; align-items:center; gap:4px;" title="${escapeHtml(c.studentEmail || '')}">
+                <span>👤</span> <span>${escapeHtml(c.studentName)}</span>
+               </div>`
+            : '';
         const isOverdue = c.overdue || (c.dueBy && new Date(c.dueBy) < new Date() && c.status !== 'RESOLVED' && c.status !== 'CLOSED');
         
         let staffDisplay = '<span style="color:var(--grey); font-style:italic;">Unassigned</span>';
@@ -560,7 +570,10 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
                 <td data-label="Description" style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.description)}">
                     ${escapeHtml(c.description)}
                 </td>
-                <td data-label="Location">${location}</td>
+                <td data-label="Location">
+                    <div style="font-weight:700;">${locationText}</div>
+                    ${studentMeta}
+                </td>
                 <td data-label="Status" style="white-space: nowrap;">
                     <span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>
                     ${isOverdue ? '<span class="badge badge-overdue" style="margin-left:4px;">OVERDUE</span>' : ''}
@@ -972,6 +985,198 @@ function renderTrendChart(trend30Days) {
     });
 }
 
+let userManagementSetup = false;
+let currentStaff = [];
+let currentStudents = [];
+const studentState = {
+    q: '',
+    page: 0,
+    size: 10
+};
+
+export function loadUserManagementView() {
+    loadStaffList();
+    loadStudentList();
+}
+
+export function setupUserManagement() {
+    if (userManagementSetup) return;
+    userManagementSetup = true;
+
+    // Sub-tab toggling (Staff vs Students)
+    const tabStaffSub = document.getElementById('tabStaffSub');
+    const tabStudentSub = document.getElementById('tabStudentSub');
+    const subPanelStaff = document.getElementById('subPanelStaff');
+    const subPanelStudents = document.getElementById('subPanelStudents');
+
+    if (tabStaffSub && tabStudentSub && subPanelStaff && subPanelStudents) {
+        tabStaffSub.onclick = () => {
+            tabStaffSub.classList.add('active');
+            tabStudentSub.classList.remove('active');
+            subPanelStaff.style.display = 'block';
+            subPanelStudents.style.display = 'none';
+        };
+
+        tabStudentSub.onclick = () => {
+            tabStudentSub.classList.add('active');
+            tabStaffSub.classList.remove('active');
+            subPanelStaff.style.display = 'none';
+            subPanelStudents.style.display = 'block';
+            if (currentStudents.length === 0) {
+                loadStudentList();
+            }
+        };
+    }
+
+    // Add Staff modal triggers
+    const addStaffBtn = document.getElementById('btnAdminAddStaff');
+    const addStaffModal = document.getElementById('adminAddStaffModal');
+    const closeAddStaffModal = document.getElementById('closeAddStaffModal');
+    const cancelAddStaffBtn = document.getElementById('cancelAddStaffBtn');
+    const addStaffOverlay = document.getElementById('addStaffOverlay');
+    const addStaffForm = document.getElementById('adminAddStaffForm');
+
+    const closeAddStaff = () => { if (addStaffModal) addStaffModal.style.display = 'none'; };
+    if (addStaffBtn && addStaffModal) {
+        addStaffBtn.onclick = () => {
+            if (addStaffForm) addStaffForm.reset();
+            addStaffModal.style.display = 'flex';
+        };
+    }
+    if (closeAddStaffModal) closeAddStaffModal.onclick = closeAddStaff;
+    if (cancelAddStaffBtn) cancelAddStaffBtn.onclick = closeAddStaff;
+    if (addStaffOverlay) addStaffOverlay.onclick = closeAddStaff;
+    if (addStaffForm) {
+        addStaffForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('addStaffName').value.trim();
+            const email = document.getElementById('addStaffEmail').value.trim();
+            const password = document.getElementById('addStaffPassword').value.trim();
+            const specialization = document.getElementById('addStaffSpecialization').value;
+
+            if (!name || !email) {
+                showToast('Name and email are required', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/admin/staff', {
+                    method: 'POST',
+                    body: {
+                        name,
+                        email,
+                        password: password || 'password123',
+                        specialization
+                    }
+                });
+                showToast('Maintenance staff created successfully!', 'success');
+                closeAddStaff();
+                loadStaffList();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // Edit Staff modal listeners
+    const editStaffModal = document.getElementById('adminEditStaffModal');
+    const closeEditStaffModal = document.getElementById('closeEditStaffModal');
+    const cancelEditStaffBtn = document.getElementById('cancelEditStaffBtn');
+    const editStaffOverlay = document.getElementById('editStaffOverlay');
+    const editStaffForm = document.getElementById('adminEditStaffForm');
+
+    const closeEditStaff = () => { if (editStaffModal) editStaffModal.style.display = 'none'; };
+    if (closeEditStaffModal) closeEditStaffModal.onclick = closeEditStaff;
+    if (cancelEditStaffBtn) cancelEditStaffBtn.onclick = closeEditStaff;
+    if (editStaffOverlay) editStaffOverlay.onclick = closeEditStaff;
+    if (editStaffForm) {
+        editStaffForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('editStaffUserId').value;
+            const name = document.getElementById('editStaffName').value.trim();
+            const specialization = document.getElementById('editStaffSpecialization').value;
+            const available = document.getElementById('editStaffAvailable').checked;
+            const active = document.getElementById('editStaffActive').checked;
+
+            if (!name) {
+                showToast('Staff name cannot be blank', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest(`/admin/users/${userId}`, {
+                    method: 'PUT',
+                    body: {
+                        name,
+                        specialization,
+                        available,
+                        active
+                    }
+                });
+                showToast('Staff member updated successfully!', 'success');
+                closeEditStaff();
+                loadStaffList();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // Edit Student modal listeners
+    const editStudentModal = document.getElementById('adminEditStudentModal');
+    const closeEditStudentModal = document.getElementById('closeEditStudentModal');
+    const cancelEditStudentBtn = document.getElementById('cancelEditStudentBtn');
+    const editStudentOverlay = document.getElementById('editStudentOverlay');
+    const editStudentForm = document.getElementById('adminEditStudentForm');
+
+    const closeEditStudent = () => { if (editStudentModal) editStudentModal.style.display = 'none'; };
+    if (closeEditStudentModal) closeEditStudentModal.onclick = closeEditStudent;
+    if (cancelEditStudentBtn) cancelEditStudentBtn.onclick = closeEditStudent;
+    if (editStudentOverlay) editStudentOverlay.onclick = closeEditStudent;
+    if (editStudentForm) {
+        editStudentForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('editStudentUserId').value;
+            const name = document.getElementById('editStudentName').value.trim();
+            const hostelBlock = document.getElementById('editStudentBlock').value.trim().toUpperCase();
+            const roomNumber = document.getElementById('editStudentRoom').value.trim();
+            const active = document.getElementById('editStudentActive').checked;
+
+            if (!name || !hostelBlock || !roomNumber) {
+                showToast('Name, block, and room number are required', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest(`/admin/users/${userId}`, {
+                    method: 'PUT',
+                    body: {
+                        name,
+                        hostelBlock,
+                        roomNumber,
+                        active
+                    }
+                });
+                showToast('Student profile updated successfully!', 'success');
+                closeEditStudent();
+                loadStudentList();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // Student search input with debounce
+    const studentSearchInput = document.getElementById('adminStudentSearchInput');
+    if (studentSearchInput) {
+        studentSearchInput.oninput = debounce(() => {
+            studentState.q = studentSearchInput.value.trim();
+            studentState.page = 0;
+            loadStudentList();
+        }, 300);
+    }
+}
+
 export async function loadStaffList() {
     const grid = document.getElementById('staffList');
     if (!grid) return;
@@ -981,26 +1186,224 @@ export async function loadStaffList() {
     try {
         const data = await apiRequest('/admin/staff');
         const staff = (data && data.staff) || [];
+        currentStaff = staff;
+
+        const countEl = document.getElementById('countStaff');
+        if (countEl) countEl.textContent = staff.length;
+
+        if (staff.length === 0) {
+            grid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1; padding: 24px;">No maintenance staff registered yet.</p>';
+            return;
+        }
 
         let html = '';
         staff.forEach(s => {
+            const isAvail = s.available !== false;
+            const isActive = s.active !== false;
+            const availBadge = isAvail
+                ? '<span class="status-badge" style="background:#D1FAE5; color:#065F46; font-weight:700;">AVAILABLE</span>'
+                : '<span class="status-badge" style="background:#FEE2E2; color:#991B1B; font-weight:700;">BUSY</span>';
+            const activeBadge = !isActive
+                ? '<span class="badge badge-inactive" style="font-size:0.75rem;">INACTIVE</span>'
+                : '';
+
             html += `
-                <div class="staff-card">
+                <div class="staff-card ${!isActive ? 'staff-card-inactive' : ''}">
                     <div class="staff-card-header">
-                        <h4>${escapeHtml(s.name)}</h4>
-                        <span class="status-badge" style="background:${s.available ? '#D1FAE5' : '#FEE2E2'}">${s.available ? 'AVAILABLE' : 'BUSY'}</span>
+                        <div>
+                            <h4 style="margin: 0; font-size: 1.05rem;">${escapeHtml(s.name)}</h4>
+                            <div style="font-size: 0.82rem; color: var(--grey); margin-top: 2px;">${escapeHtml(s.email)}</div>
+                        </div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${activeBadge}
+                            ${availBadge}
+                        </div>
                     </div>
-                    <p><strong>Email:</strong> ${escapeHtml(s.email)}</p>
-                    <p><strong>Specialization:</strong> ${escapeHtml(s.specializationDisplay || s.specialization)}</p>
-                    <p><strong>Active Complaints:</strong> ${s.activeComplaints}</p>
-                    <p><strong>Average Rating:</strong> ★ ${s.avgRating || '—'}</p>
+                    <div class="staff-card-body" style="margin: 12px 0; font-size: 0.9rem;">
+                        <p style="margin: 4px 0;"><strong>Specialization:</strong> <span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:700;">${escapeHtml(s.specializationDisplay || s.specialization)}</span></p>
+                        <p style="margin: 4px 0;"><strong>Active Complaints:</strong> ${s.activeComplaints}</p>
+                        <p style="margin: 4px 0;"><strong>Average Rating:</strong> ★ ${s.avgRating || '—'}</p>
+                    </div>
+                    <div class="staff-card-actions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                        <button type="button" class="btn btn-outline btn-sm btn-edit-staff" data-user-id="${s.userId}">Edit</button>
+                        <button type="button" class="btn btn-outline btn-sm btn-toggle-avail" data-user-id="${s.userId}" data-avail="${isAvail}">
+                            ${isAvail ? 'Mark Busy' : 'Mark Available'}
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm ${isActive ? 'danger' : ''} btn-toggle-staff-active" data-user-id="${s.userId}" data-active="${isActive}">
+                            ${isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                    </div>
                 </div>
             `;
         });
 
         grid.innerHTML = html;
+
+        // Wire staff action buttons
+        grid.querySelectorAll('.btn-edit-staff').forEach(btn => {
+            btn.onclick = () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const s = currentStaff.find(st => st.userId === uId);
+                if (s) {
+                    const modal = document.getElementById('adminEditStaffModal');
+                    if (!modal) return;
+                    document.getElementById('editStaffUserId').value = s.userId;
+                    document.getElementById('editStaffName').value = s.name || '';
+                    document.getElementById('editStaffEmail').value = s.email || '';
+                    document.getElementById('editStaffSpecialization').value = s.specialization || 'OTHER';
+                    document.getElementById('editStaffAvailable').checked = s.available !== false;
+                    document.getElementById('editStaffActive').checked = s.active !== false;
+                    modal.style.display = 'flex';
+                }
+            };
+        });
+
+        grid.querySelectorAll('.btn-toggle-avail').forEach(btn => {
+            btn.onclick = async () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const isAvail = btn.getAttribute('data-avail') === 'true';
+                const s = currentStaff.find(st => st.userId === uId);
+                const spec = s ? s.specialization : null;
+                try {
+                    await apiRequest(`/admin/staff/${uId}`, {
+                        method: 'PUT',
+                        body: {
+                            available: !isAvail,
+                            specialization: spec
+                        }
+                    });
+                    showToast(`Staff availability marked as ${!isAvail ? 'Available' : 'Busy'}`, 'success');
+                    loadStaffList();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            };
+        });
+
+        grid.querySelectorAll('.btn-toggle-staff-active').forEach(btn => {
+            btn.onclick = async () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const isActive = btn.getAttribute('data-active') === 'true';
+                try {
+                    await apiRequest(`/admin/users/${uId}`, {
+                        method: 'PUT',
+                        body: { active: !isActive }
+                    });
+                    showToast(`Staff account ${!isActive ? 'activated' : 'deactivated'} successfully`, 'success');
+                    loadStaffList();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            };
+        });
+
     } catch (err) {
         grid.innerHTML = `<div class="toast toast-error">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+export async function loadStudentList() {
+    const tbody = document.getElementById('adminStudentsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Loading students...</td></tr>';
+
+    try {
+        const queryParams = new URLSearchParams({
+            role: 'STUDENT',
+            q: studentState.q,
+            page: studentState.page,
+            size: studentState.size
+        });
+        const data = await apiRequest(`/admin/users?${queryParams.toString()}`);
+        const students = (data && data.users) || [];
+        const total = data ? data.total : 0;
+        currentStudents = students;
+
+        const countEl = document.getElementById('countStudents');
+        if (countEl) countEl.textContent = total;
+
+        if (students.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 24px;">No students found matching your search.</td></tr>';
+            renderPagination(0, studentState, 'studentPaginationContainer', loadStudentList);
+            return;
+        }
+
+        let html = '';
+        students.forEach(st => {
+            const block = escapeHtml(st.hostelBlock || '—');
+            const room = escapeHtml(st.roomNumber || '—');
+            const isActive = st.active !== false;
+            const statusBadge = isActive
+                ? '<span class="badge badge-success" style="font-size:0.75rem;">Active</span>'
+                : '<span class="badge badge-inactive" style="font-size:0.75rem;">Inactive</span>';
+
+            html += `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="user-avatar-sm" style="width:28px; height:28px; border-radius:50%; background:#00B4D8; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">
+                                ${(st.name || 'S').charAt(0).toUpperCase()}
+                            </div>
+                            <strong>${escapeHtml(st.name)}</strong>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(st.email)}</td>
+                    <td><span class="meta-tag">Block ${block}</span></td>
+                    <td><span class="meta-tag">Room ${room}</span></td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn btn-outline btn-sm btn-edit-student" data-user-id="${st.userId}">Edit</button>
+                            <button type="button" class="btn btn-outline btn-sm ${isActive ? 'danger' : ''} btn-toggle-student-active" data-user-id="${st.userId}" data-active="${isActive}">
+                                ${isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+        // Wire edit & deactivate buttons
+        tbody.querySelectorAll('.btn-edit-student').forEach(btn => {
+            btn.onclick = () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const s = currentStudents.find(st => st.userId === uId);
+                if (s) {
+                    const modal = document.getElementById('adminEditStudentModal');
+                    if (!modal) return;
+                    document.getElementById('editStudentUserId').value = s.userId;
+                    document.getElementById('editStudentName').value = s.name || '';
+                    document.getElementById('editStudentEmail').value = s.email || '';
+                    document.getElementById('editStudentBlock').value = s.hostelBlock || '';
+                    document.getElementById('editStudentRoom').value = s.roomNumber || '';
+                    document.getElementById('editStudentActive').checked = s.active !== false;
+                    modal.style.display = 'flex';
+                }
+            };
+        });
+
+        tbody.querySelectorAll('.btn-toggle-student-active').forEach(btn => {
+            btn.onclick = async () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const isActive = btn.getAttribute('data-active') === 'true';
+                try {
+                    await apiRequest(`/admin/users/${uId}`, {
+                        method: 'PUT',
+                        body: { active: !isActive }
+                    });
+                    showToast(`Student ${!isActive ? 'activated' : 'deactivated'} successfully`, 'success');
+                    loadStudentList();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            };
+        });
+
+        renderPagination(total, studentState, 'studentPaginationContainer', loadStudentList);
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red" style="padding: 20px;">Failed to load students: ${escapeHtml(err.message)}</td></tr>`;
     }
 }
 

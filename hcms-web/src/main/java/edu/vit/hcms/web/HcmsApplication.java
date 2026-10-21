@@ -13,6 +13,7 @@ import edu.vit.hcms.service.notification.AuditListener;
 import edu.vit.hcms.service.notification.NotificationService;
 import edu.vit.hcms.service.strategy.LeastWorkloadStrategy;
 import edu.vit.hcms.service.strategy.SpecializationMatchStrategy;
+import edu.vit.hcms.service.user.UserManager;
 import edu.vit.hcms.web.controller.*;
 import edu.vit.hcms.web.filter.AuthFilter;
 import edu.vit.hcms.web.filter.CorsFilter;
@@ -81,6 +82,7 @@ public class HcmsApplication {
         complaintManager.registerStrategy("specialization", new SpecializationMatchStrategy());
         complaintManager.registerStrategy("leastWorkload", new LeastWorkloadStrategy(userDao));
 
+        UserManager userManager = new UserManager(userDao, txManager);
         AnalyticsService analyticsService = new AnalyticsService(complaintDao, userDao);
 
         SlaEscalationEngine slaEngine = new SlaEscalationEngine(complaintDao, notificationService);
@@ -89,7 +91,8 @@ public class HcmsApplication {
         // ---- Controllers ----
         AuthController authController = new AuthController(authService, userDao);
         ComplaintController complaintController = new ComplaintController(complaintManager, supportDao, userDao);
-        AdminController adminController = new AdminController(complaintManager, complaintDao, userDao, analyticsService, supportDao);
+        AdminController adminController = new AdminController(complaintManager, complaintDao, userDao, analyticsService, supportDao, userManager);
+        UserController userController = new UserController(userManager);
         StaffController staffController = new StaffController(complaintManager, userDao, supportDao);
         NotificationController notificationController = new NotificationController(notificationService);
         HealthController healthController = new HealthController(dbManager, notificationService);
@@ -143,6 +146,16 @@ public class HcmsApplication {
         app.post("/api/v1/auth/change-password", ctx -> {
             authFilter.requireAuth(ctx);
             authController.changePassword(ctx);
+        });
+
+        // ---- User Profile Routes ----
+        app.get("/api/v1/users/profile", ctx -> {
+            authFilter.requireAuth(ctx);
+            userController.getProfile(ctx);
+        });
+        app.put("/api/v1/users/profile", ctx -> {
+            authFilter.requireAuth(ctx);
+            userController.updateProfile(ctx);
         });
 
         // ---- Student Routes ----
@@ -232,6 +245,22 @@ public class HcmsApplication {
         app.get("/api/v1/admin/export-audit.csv", ctx -> {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.exportAuditCsv(ctx);
+        });
+        app.get("/api/v1/admin/users", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.listUsers(ctx);
+        });
+        app.put("/api/v1/admin/users/{id}", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.updateUser(ctx);
+        });
+        app.delete("/api/v1/admin/users/{id}", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.deleteUser(ctx);
+        });
+        app.put("/api/v1/admin/staff/{id}", ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.updateStaff(ctx);
         });
 
         // ---- Staff Routes ----

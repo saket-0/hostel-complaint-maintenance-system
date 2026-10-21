@@ -39,7 +39,12 @@
                         <span id="dropdownUserEmail" class="dropdown-email">user@vit.ac.in</span>
                     </div>
                     <div class="dropdown-divider"></div>
-                    <button class="dropdown-item" id="logoutBtn">
+                    <button class="dropdown-item" id="openProfileBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        My Profile
+                    </button>
+                    <button class="dropdown-item danger" id="logoutBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                         Logout
                     </button>
                 </div>
@@ -445,12 +450,59 @@
                 </div>
             </div>
 
-            <!-- Staff Management Tab -->
+            <!-- Staff & User Management Tab -->
             <div id="adminStaffTab" class="tab-content" style="display:none;">
                 <div class="dashboard-header">
-                    <h2>Maintenance Staff Management</h2>
+                    <div>
+                        <h2>Staff &amp; User Management</h2>
+                        <p class="section-subtitle">Manage maintenance staff assignments, availability, and inspect registered students.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="btnAdminAddStaff" type="button">+ Add New Staff</button>
+                    </div>
                 </div>
-                <div id="staffList" class="staff-grid"></div>
+
+                <!-- Sub-tabs: Maintenance Staff vs Student Directory -->
+                <div class="filter-chips-row user-mgmt-tabs" id="userMgmtTabs">
+                    <button type="button" class="filter-chip active" id="tabStaffSub">
+                        Maintenance Staff <span class="chip-count" id="countStaff">0</span>
+                    </button>
+                    <button type="button" class="filter-chip" id="tabStudentSub">
+                        Student Directory <span class="chip-count" id="countStudents">0</span>
+                    </button>
+                </div>
+
+                <!-- Sub-panel 1: Maintenance Staff -->
+                <div id="subPanelStaff" class="user-subpanel">
+                    <div id="staffList" class="staff-grid"></div>
+                </div>
+
+                <!-- Sub-panel 2: Students Directory -->
+                <div id="subPanelStudents" class="user-subpanel" style="display:none;">
+                    <div class="table-toolbar user-table-toolbar">
+                        <div class="search-box">
+                            <input type="text" id="adminStudentSearchInput" class="form-control" placeholder="Search students by name, email, room, or block..." />
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminStudentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Email</th>
+                                    <th>Hostel Block</th>
+                                    <th>Room No</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminStudentsTableBody">
+                                <tr><td colspan="6" class="text-center">Loading students...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="studentPaginationContainer"></div>
+                </div>
             </div>
         </section>
 
@@ -641,6 +693,215 @@
                 <div class="form-actions">
                     <button class="btn btn-primary" id="autoAssignBtn">🤖 Auto-Assign</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Universal User Profile Modal -->
+        <div id="profileModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+            <div class="modal-overlay" id="profileOverlay"></div>
+            <div class="modal-content modal-md">
+                <button class="modal-close" id="closeProfileModal" aria-label="Close profile modal">✕</button>
+                <div class="modal-header-profile">
+                    <div class="profile-avatar-lg" id="profileModalAvatar">U</div>
+                    <div class="profile-header-meta">
+                        <h3 id="profileModalTitle" class="modal-title" style="margin: 0;">User Profile</h3>
+                        <div class="profile-meta-badges">
+                            <span class="badge" id="profileModalRoleBadge">ROLE</span>
+                            <span class="badge badge-success" id="profileModalStatusBadge">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="profileForm" class="profile-form">
+                    <div class="form-group">
+                        <label for="profileEmail">Email (VIT Official)</label>
+                        <input type="email" id="profileEmail" class="form-control" readonly disabled>
+                        <small class="form-hint">Email address cannot be changed</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profileName">Full Name</label>
+                        <input type="text" id="profileName" class="form-control" required maxlength="100">
+                    </div>
+
+                    <!-- Student Fields -->
+                    <div id="profileStudentFields" class="role-specific-fields" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileHostelBlock">Hostel Block</label>
+                                <input type="text" id="profileHostelBlock" class="form-control" placeholder="e.g. A" maxlength="5">
+                                <small class="form-hint">Block letter (e.g., A, B, C)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="profileRoomNumber">Room Number</label>
+                                <input type="text" id="profileRoomNumber" class="form-control" placeholder="e.g. 201" maxlength="10">
+                                <small class="form-hint">Room number (e.g., 201)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Fields -->
+                    <div id="profileStaffFields" class="role-specific-fields" style="display:none;">
+                        <div class="form-group">
+                            <label for="profileSpecialization">Specialization</label>
+                            <input type="text" id="profileSpecialization" class="form-control" readonly disabled>
+                            <small class="form-hint">Assigned by Hostel Administration</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="toggle-label" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                <span>Duty Availability Status</span>
+                                <input type="checkbox" id="profileAvailable" class="toggle-checkbox" style="width: auto;">
+                            </label>
+                            <small class="form-hint">When unavailable, automated complaint assignment is paused</small>
+                        </div>
+                    </div>
+
+                    <!-- Admin Fields -->
+                    <div id="profileAdminFields" class="role-specific-fields" style="display:none;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="profileAdminRole">Administrative Role</label>
+                            <input type="text" id="profileAdminRole" class="form-control" readonly disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelProfileBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Add Staff Modal -->
+        <div id="adminAddStaffModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="addStaffModalTitle">
+            <div class="modal-overlay" id="addStaffOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeAddStaffModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="addStaffModalTitle">Add Maintenance Staff</h3>
+                </div>
+                <form id="adminAddStaffForm" class="modal-form">
+                    <div class="form-group">
+                        <label for="addStaffName">Full Name</label>
+                        <input type="text" id="addStaffName" class="form-control" placeholder="e.g. Ramesh Kumar" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStaffEmail">Staff Email</label>
+                        <input type="email" id="addStaffEmail" class="form-control" placeholder="e.g. ramesh@vit.ac.in" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStaffPassword">Initial Password</label>
+                        <input type="password" id="addStaffPassword" class="form-control" placeholder="Min 6 characters (default: password123)" minlength="6" />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStaffSpecialization">Specialization</label>
+                        <select id="addStaffSpecialization" class="form-control" required>
+                            <option value="ELECTRICAL">Electrical</option>
+                            <option value="PLUMBING">Plumbing</option>
+                            <option value="WIFI">Wi-Fi &amp; Internet</option>
+                            <option value="AC">Air Conditioning (AC)</option>
+                            <option value="CARPENTRY">Carpentry</option>
+                            <option value="CLEANING">Cleaning &amp; Housekeeping</option>
+                            <option value="OTHER">General Maintenance (Other)</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelAddStaffBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveAddStaffBtn">Create Staff Member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Edit Staff Modal -->
+        <div id="adminEditStaffModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="editStaffModalTitle">
+            <div class="modal-overlay" id="editStaffOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeEditStaffModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="editStaffModalTitle">Edit Maintenance Staff</h3>
+                </div>
+                <form id="adminEditStaffForm" class="modal-form">
+                    <input type="hidden" id="editStaffUserId" />
+                    <div class="form-group">
+                        <label for="editStaffName">Full Name</label>
+                        <input type="text" id="editStaffName" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffEmail">Email (Read-Only)</label>
+                        <input type="email" id="editStaffEmail" class="form-control" disabled readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStaffSpecialization">Specialization</label>
+                        <select id="editStaffSpecialization" class="form-control" required>
+                            <option value="ELECTRICAL">Electrical</option>
+                            <option value="PLUMBING">Plumbing</option>
+                            <option value="WIFI">Wi-Fi &amp; Internet</option>
+                            <option value="AC">Air Conditioning (AC)</option>
+                            <option value="CARPENTRY">Carpentry</option>
+                            <option value="CLEANING">Cleaning &amp; Housekeeping</option>
+                            <option value="OTHER">General Maintenance (Other)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="toggle-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                            <span>Available on Duty</span>
+                            <input type="checkbox" id="editStaffAvailable" class="toggle-checkbox" style="width:auto;" />
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label class="toggle-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                            <span>Account Active</span>
+                            <input type="checkbox" id="editStaffActive" class="toggle-checkbox" style="width:auto;" />
+                        </label>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelEditStaffBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveEditStaffBtn">Save Staff Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Edit Student Modal -->
+        <div id="adminEditStudentModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="editStudentModalTitle">
+            <div class="modal-overlay" id="editStudentOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeEditStudentModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="editStudentModalTitle">Edit Student Profile</h3>
+                </div>
+                <form id="adminEditStudentForm" class="modal-form">
+                    <input type="hidden" id="editStudentUserId" />
+                    <div class="form-group">
+                        <label for="editStudentName">Full Name</label>
+                        <input type="text" id="editStudentName" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStudentEmail">Email (Read-Only)</label>
+                        <input type="email" id="editStudentEmail" class="form-control" disabled readonly />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStudentBlock">Hostel Block</label>
+                            <input type="text" id="editStudentBlock" class="form-control" placeholder="e.g. A" maxlength="2" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editStudentRoom">Room Number</label>
+                            <input type="text" id="editStudentRoom" class="form-control" placeholder="e.g. 204" required />
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label class="toggle-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                            <span>Account Active</span>
+                            <input type="checkbox" id="editStudentActive" class="toggle-checkbox" style="width:auto;" />
+                        </label>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelEditStudentBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveEditStudentBtn">Save Changes</button>
+                    </div>
+                </form>
             </div>
         </div>
 

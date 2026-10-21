@@ -77,11 +77,11 @@ A quick-reference guide for developers and pair-programmers working with AI agen
 ---
 
 ### Scenario F: Frontend Only — `/ui`
-**When to use:** Styling, layouts, form validation, client-side filters, modal behavior.
+**When to use:** Styling, layouts, form validation, client-side filters, modals and management screens (e.g. Profile Modal, Complaint Drawer, User & Staff Management Screen).
 ```text
 /ui Add status badge color highlights for URGENT complaints in student timeline
 ```
-- **Behavior:** Guaranteed zero edits to Java backend, `pom.xml`, or database. Touches only `hcms-web/src/main/resources/public/`.
+- **Behavior:** Guaranteed zero edits to Java backend, `pom.xml`, or database. Touches only `hcms-web/src/main/resources/public/`. Handles client-side state synchronization (e.g. top-bar profile avatars, badge triggers, dynamic modals, staff toggles, student directory tables).
 
 ---
 

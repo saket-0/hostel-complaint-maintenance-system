@@ -32,6 +32,10 @@ public class Complaint {
     private String assignedStaffSpecialization;
     private boolean feedbackGiven;
     private java.util.List<String> allowedActions;
+    private String studentName;
+    private String studentEmail;
+    private String studentRoomNumber;
+    private String studentHostelBlock;
 
     /** Private constructor enforces use of the Builder. */
     private Complaint() {
@@ -112,6 +116,22 @@ public class Complaint {
         return allowedActions != null ? allowedActions : java.util.Collections.emptyList();
     }
 
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public String getStudentEmail() {
+        return studentEmail;
+    }
+
+    public String getStudentRoomNumber() {
+        return studentRoomNumber;
+    }
+
+    public String getStudentHostelBlock() {
+        return studentHostelBlock;
+    }
+
     // --- Setters for mutable fields ---
 
     public void setFeedbackGiven(boolean feedbackGiven) {
@@ -161,6 +181,22 @@ public class Complaint {
 
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
+    }
+
+    public void setStudentEmail(String studentEmail) {
+        this.studentEmail = studentEmail;
+    }
+
+    public void setStudentRoomNumber(String studentRoomNumber) {
+        this.studentRoomNumber = studentRoomNumber;
+    }
+
+    public void setStudentHostelBlock(String studentHostelBlock) {
+        this.studentHostelBlock = studentHostelBlock;
     }
 
     /**
@@ -287,6 +323,26 @@ public class Complaint {
 
         public Builder allowedActions(java.util.List<String> allowedActions) {
             complaint.allowedActions = allowedActions;
+            return this;
+        }
+
+        public Builder studentName(String studentName) {
+            complaint.studentName = studentName;
+            return this;
+        }
+
+        public Builder studentEmail(String studentEmail) {
+            complaint.studentEmail = studentEmail;
+            return this;
+        }
+
+        public Builder studentRoomNumber(String studentRoomNumber) {
+            complaint.studentRoomNumber = studentRoomNumber;
+            return this;
+        }
+
+        public Builder studentHostelBlock(String studentHostelBlock) {
+            complaint.studentHostelBlock = studentHostelBlock;
             return this;
         }
 

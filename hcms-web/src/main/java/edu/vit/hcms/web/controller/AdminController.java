@@ -9,8 +9,12 @@ import edu.vit.hcms.core.policy.ComplaintActionPolicy;
 import edu.vit.hcms.persistence.dao.ComplaintDao;
 import edu.vit.hcms.persistence.dao.SupportDao;
 import edu.vit.hcms.persistence.dao.UserDao;
+import edu.vit.hcms.core.exception.ValidationException;
 import edu.vit.hcms.service.analytics.AnalyticsService;
 import edu.vit.hcms.service.complaint.ComplaintManager;
+import edu.vit.hcms.service.user.UserManager;
+import edu.vit.hcms.web.dto.AdminUpdateUserRequest;
+import edu.vit.hcms.web.dto.UpdateStaffRequest;
 import io.javalin.http.Context;
 
 import java.time.LocalDate;
@@ -18,7 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Controller for admin operations: complaint management, staff, analytics, CSV export.
+ * Controller for admin operations: complaint management, staff, analytics, CSV export, and user governance.
  */
 public class AdminController {
 
@@ -27,14 +31,22 @@ public class AdminController {
     private final UserDao userDao;
     private final AnalyticsService analyticsService;
     private final SupportDao supportDao;
+    private final UserManager userManager;
 
     public AdminController(ComplaintManager complaintManager, ComplaintDao complaintDao,
                            UserDao userDao, AnalyticsService analyticsService, SupportDao supportDao) {
+        this(complaintManager, complaintDao, userDao, analyticsService, supportDao, new UserManager(userDao));
+    }
+
+    public AdminController(ComplaintManager complaintManager, ComplaintDao complaintDao,
+                           UserDao userDao, AnalyticsService analyticsService, SupportDao supportDao,
+                           UserManager userManager) {
         this.complaintManager = complaintManager;
         this.complaintDao = complaintDao;
         this.userDao = userDao;
         this.analyticsService = analyticsService;
         this.supportDao = supportDao;
+        this.userManager = userManager;
     }
 
     /**
@@ -335,6 +347,86 @@ public class AdminController {
         ctx.header("Content-Type", "text/csv");
         ctx.header("Content-Disposition", "attachment; filename=audit_history_export.csv");
         ctx.result(csv.toString());
+    }
+
+    /** GET /api/v1/admin/users - Search, filter by role, paginate users */
+    public void listUsers(Context ctx) {
+        String role = ctx.queryParam("role");
+        String query = ctx.queryParam("q");
+        String pageStr = ctx.queryParam("page");
+        int page = 0;
+        if (pageStr != null && !pageStr.isBlank()) {
+            try {
+                page = Math.max(0, Integer.parseInt(pageStr.trim()));
+            } catch (NumberFormatException ignored) {}
+        }
+        String sizeStr = ctx.queryParam("size");
+        int size = 25;
+        if (sizeStr != null && !sizeStr.isBlank()) {
+            try {
+                size = Math.min(100, Math.max(1, Integer.parseInt(sizeStr.trim())));
+            } catch (NumberFormatException ignored) {}
+        }
+
+        List<User> users = userManager.listUsers(role, query, page * size, size);
+        long total = userManager.countUsers(role, query);
+
+        List<Map<String, Object>> result = users.stream()
+                .map(UserController::toUserMap)
+                .collect(Collectors.toList());
+
+        ctx.json(Map.of(
+                "users", result,
+                "total", total,
+                "page", page,
+                "size", size
+        ));
+    }
+
+    /** PUT /api/v1/admin/users/{id} - Admin update of user account */
+    public void updateUser(Context ctx) {
+        Long id = Long.parseLong(ctx.pathParam("id"));
+        AdminUpdateUserRequest req = ctx.bodyAsClass(AdminUpdateUserRequest.class);
+
+        Specialization spec = null;
+        if (req.specialization() != null && !req.specialization().isBlank()) {
+            try {
+                spec = Specialization.valueOf(req.specialization().trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ValidationException("specialization", "Invalid specialization: " + req.specialization());
+            }
+        }
+
+        User updated = userManager.adminUpdateUser(
+                id, req.name(), req.active(), req.roomNumber(), req.hostelBlock(),
+                spec, req.available(), req.adminRole()
+        );
+        ctx.json(Map.of("message", "User updated successfully", "user", UserController.toUserMap(updated)));
+    }
+
+    /** DELETE /api/v1/admin/users/{id} - Soft-deactivate user account */
+    public void deleteUser(Context ctx) {
+        Long id = Long.parseLong(ctx.pathParam("id"));
+        userManager.deactivateUser(id);
+        ctx.json(Map.of("message", "User deactivated successfully"));
+    }
+
+    /** PUT /api/v1/admin/staff/{id} - Update staff specialization and availability */
+    public void updateStaff(Context ctx) {
+        Long id = Long.parseLong(ctx.pathParam("id"));
+        UpdateStaffRequest req = ctx.bodyAsClass(UpdateStaffRequest.class);
+
+        Specialization spec = null;
+        if (req.specialization() != null && !req.specialization().isBlank()) {
+            try {
+                spec = Specialization.valueOf(req.specialization().trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ValidationException("specialization", "Invalid specialization: " + req.specialization());
+            }
+        }
+
+        MaintenanceStaff updated = userManager.updateStaff(id, spec, req.available());
+        ctx.json(Map.of("message", "Staff updated successfully", "staff", UserController.toUserMap(updated)));
     }
 
     private Map<String, Object> toMap(Complaint c) {

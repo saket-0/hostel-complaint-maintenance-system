@@ -2,7 +2,8 @@
  * HCMS Single Page Application Root.
  * Manages single-level role navigation, hash routing, view switching, and lifecycle initialization.
  */
-import { checkAuth, login, register, logout, getCurrentUser } from './auth.js';
+import { checkAuth, login, register, logout, getCurrentUser, setCurrentUser } from './auth.js';
+import { apiRequest } from './api.js';
 import { showToast } from './toast.js';
 import { initStudentView } from './student.js';
 import { initAdminView } from './admin.js';
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupAuthFormToggles();
     setupAuthFormSubmissions();
     setupProfileMenu();
+    setupProfileModal();
     setupLogout();
 
     window.addEventListener('hashchange', handleRoute);
@@ -176,6 +178,189 @@ function setupLogout() {
             stopNotificationPolling();
             await logout();
         };
+    }
+}
+
+let currentProfileData = null;
+
+function setupProfileModal() {
+    const modal = document.getElementById('profileModal');
+    const overlay = document.getElementById('profileOverlay');
+    const closeBtn = document.getElementById('closeProfileModal');
+    const cancelBtn = document.getElementById('cancelProfileBtn');
+    const form = document.getElementById('profileForm');
+    const openBtn = document.getElementById('openProfileBtn');
+
+    if (!modal) return;
+
+    const closeModal = () => {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    };
+
+    if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('profileDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            openProfileModal();
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (overlay) overlay.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display !== 'none') {
+            closeModal();
+        }
+    });
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveProfileChanges();
+        });
+    }
+}
+
+async function openProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+        populateProfileForm(currentUser);
+    }
+
+    try {
+        const freshProfile = await apiRequest('/users/profile');
+        currentProfileData = freshProfile;
+        populateProfileForm(freshProfile);
+    } catch (err) {
+        showToast(err.message || 'Failed to load profile details', 'error');
+    }
+}
+
+function populateProfileForm(user) {
+    if (!user) return;
+    const avatarEl = document.getElementById('profileModalAvatar');
+    const titleEl = document.getElementById('profileModalTitle');
+    const roleBadgeEl = document.getElementById('profileModalRoleBadge');
+    const statusBadgeEl = document.getElementById('profileModalStatusBadge');
+    const emailInput = document.getElementById('profileEmail');
+    const nameInput = document.getElementById('profileName');
+
+    const firstChar = (user.name || 'U').charAt(0).toUpperCase();
+    if (avatarEl) avatarEl.textContent = firstChar;
+    if (titleEl) titleEl.textContent = user.name || 'User Profile';
+    if (roleBadgeEl) roleBadgeEl.textContent = user.role || '';
+    if (statusBadgeEl) {
+        statusBadgeEl.textContent = user.active !== false ? 'Active' : 'Inactive';
+        statusBadgeEl.className = user.active !== false ? 'badge badge-success' : 'badge badge-danger';
+    }
+
+    if (emailInput) emailInput.value = user.email || '';
+    if (nameInput) nameInput.value = user.name || '';
+
+    const studentFields = document.getElementById('profileStudentFields');
+    const staffFields = document.getElementById('profileStaffFields');
+    const adminFields = document.getElementById('profileAdminFields');
+
+    if (studentFields) studentFields.style.display = user.role === 'STUDENT' ? 'block' : 'none';
+    if (staffFields) staffFields.style.display = user.role === 'STAFF' ? 'block' : 'none';
+    if (adminFields) adminFields.style.display = user.role === 'ADMIN' ? 'block' : 'none';
+
+    if (user.role === 'STUDENT') {
+        const blockInput = document.getElementById('profileHostelBlock');
+        const roomInput = document.getElementById('profileRoomNumber');
+        if (blockInput) blockInput.value = user.hostelBlock || '';
+        if (roomInput) roomInput.value = user.roomNumber || '';
+    } else if (user.role === 'STAFF') {
+        const specInput = document.getElementById('profileSpecialization');
+        const availCheck = document.getElementById('profileAvailable');
+        if (specInput) specInput.value = user.specializationDisplay || user.specialization || 'Maintenance';
+        if (availCheck) availCheck.checked = user.available !== false;
+    } else if (user.role === 'ADMIN') {
+        const roleInput = document.getElementById('profileAdminRole');
+        if (roleInput) roleInput.value = user.adminRole || 'System Administrator';
+    }
+}
+
+async function saveProfileChanges() {
+    const saveBtn = document.getElementById('saveProfileBtn');
+    const nameInput = document.getElementById('profileName');
+    const currentUser = getCurrentUser();
+    const role = currentUser ? currentUser.role : (currentProfileData ? currentProfileData.role : null);
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+        showToast('Full name cannot be blank', 'error');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    const payload = { name };
+
+    if (role === 'STUDENT') {
+        const blockInput = document.getElementById('profileHostelBlock');
+        const roomInput = document.getElementById('profileRoomNumber');
+        const block = blockInput ? blockInput.value.trim().toUpperCase() : '';
+        const room = roomInput ? roomInput.value.trim() : '';
+
+        if (!block) {
+            showToast('Hostel block is required', 'error');
+            if (blockInput) blockInput.focus();
+            return;
+        }
+        if (!room) {
+            showToast('Room number is required', 'error');
+            if (roomInput) roomInput.focus();
+            return;
+        }
+        payload.hostelBlock = block;
+        payload.roomNumber = room;
+    } else if (role === 'STAFF') {
+        const availCheck = document.getElementById('profileAvailable');
+        if (availCheck) {
+            payload.available = availCheck.checked;
+        }
+    }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+    }
+
+    try {
+        const resp = await apiRequest('/users/profile', {
+            method: 'PUT',
+            body: payload
+        });
+
+        const updatedUser = resp.user || resp;
+        currentProfileData = updatedUser;
+        setCurrentUser(updatedUser);
+        updateProfileMenu(updatedUser);
+
+        showToast(resp.message || 'Profile updated successfully!', 'success');
+
+        const modal = document.getElementById('profileModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to update profile', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        }
     }
 }
 

@@ -15,6 +15,13 @@ export function setCurrentUser(user) {
     currentUser = user;
 }
 
+export function updateUser(updated) {
+    if (updated) {
+        currentUser = { ...(currentUser || {}), ...updated };
+    }
+    return currentUser;
+}
+
 export async function checkAuth() {
     const token = getToken();
     if (!token) return null;

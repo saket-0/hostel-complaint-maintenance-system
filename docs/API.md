@@ -130,6 +130,57 @@ When an error occurs, the server responds with a consistent JSON body and no lea
   }
   ```
 
+### 2.6 Get User Profile
+- **Method**: `GET`
+- **Path**: `/api/v1/users/profile`
+- **Auth**: `STUDENT`, `STAFF`, or `ADMIN`
+- **Response** (`200 OK`):
+  ```json
+  {
+    "userId": 5,
+    "email": "rohan.gupta@vitstudent.ac.in",
+    "name": "Rohan Gupta",
+    "role": "STUDENT",
+    "active": true,
+    "createdAt": "2026-10-15T09:00:00Z",
+    "dashboard": "STUDENT_PORTAL",
+    "permissions": ["CREATE_COMPLAINT", "VIEW_OWN_COMPLAINTS", "GIVE_FEEDBACK"],
+    "roomNumber": "301",
+    "hostelBlock": "A"
+  }
+  ```
+
+### 2.7 Update User Profile
+- **Method**: `PUT`
+- **Path**: `/api/v1/users/profile`
+- **Auth**: `STUDENT`, `STAFF`, or `ADMIN`
+- **Request Body**:
+  ```json
+  {
+    "name": "Rohan Gupta",
+    "roomNumber": "305",
+    "hostelBlock": "B"
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "message": "Profile updated successfully",
+    "user": {
+      "userId": 5,
+      "email": "rohan.gupta@vitstudent.ac.in",
+      "name": "Rohan Gupta",
+      "role": "STUDENT",
+      "active": true,
+      "createdAt": "2026-10-15T09:00:00Z",
+      "dashboard": "STUDENT_PORTAL",
+      "permissions": ["CREATE_COMPLAINT", "VIEW_OWN_COMPLAINTS", "GIVE_FEEDBACK"],
+      "roomNumber": "305",
+      "hostelBlock": "B"
+    }
+  }
+  ```
+
 ---
 
 ## 3. Student Complaint Endpoints
@@ -184,6 +235,10 @@ When an error occurs, the server responds with a consistent JSON body and no lea
         "dueBy": "2026-10-20T22:00:00",
         "staffId": null,
         "staffName": "Unassigned",
+        "studentName": "Rohan Gupta",
+        "studentEmail": "rohan.gupta@vitstudent.ac.in",
+        "studentRoomNumber": "301",
+        "studentHostelBlock": "A",
         "hasFeedback": false
       }
     ],
@@ -197,7 +252,48 @@ When an error occurs, the server responds with a consistent JSON body and no lea
 - **Path**: `/api/v1/complaints/{id}`
 - **Auth**: `STUDENT` (own complaint), `ADMIN`, or assigned `STAFF`
 - **Response** (`200 OK`):
-  Returns full metadata, audit timeline history (`complaint_history`), feedback, and comment thread.
+  ```json
+  {
+    "complaint": {
+      "complaintId": "HCM-2026-000041",
+      "studentId": 5,
+      "studentName": "Rohan Gupta",
+      "studentEmail": "rohan.gupta@vitstudent.ac.in",
+      "studentRoomNumber": "301",
+      "studentHostelBlock": "A",
+      "staffId": 2,
+      "staffName": "Arun Kumar",
+      "category": "ELECTRICAL",
+      "categoryDisplay": "Electrical",
+      "description": "Switchboard sparking in room 301",
+      "priority": "HIGH",
+      "priorityDisplay": "High (24h SLA)",
+      "priorityLevel": 1,
+      "status": "ASSIGNED",
+      "statusDisplay": "Assigned",
+      "createdDate": "2026-10-19T22:00:00",
+      "updatedDate": "2026-10-19T22:30:00",
+      "dueBy": "2026-10-20T22:00:00",
+      "resolvedDate": null,
+      "allowedActions": ["VIEW"]
+    },
+    "history": [
+      {
+        "id": 101,
+        "complaintId": "HCM-2026-000041",
+        "oldStatus": "NEW",
+        "newStatus": "ASSIGNED",
+        "changedBy": 1,
+        "changedByName": "Dr. Ramesh Kumar (Admin)",
+        "note": "Assigned to Arun Kumar (Electrical Maintenance)",
+        "changedAt": "2026-10-19T22:30:00"
+      }
+    ],
+    "comments": [],
+    "feedback": null,
+    "attachments": []
+  }
+  ```
 
 ### 3.4 Reopen Resolved Complaint
 - **Method**: `POST`
@@ -355,6 +451,104 @@ When an error occurs, the server responds with a consistent JSON body and no lea
 - **Auth**: `ADMIN`
 - **Response Header**: `Content-Disposition: attachment; filename="complaints-export.csv"`
 - **Response Body**: Comma-separated CSV data with all complaint attributes and timestamps.
+
+### 4.9 List and Search Users
+- **Method**: `GET`
+- **Path**: `/api/v1/admin/users`
+- **Auth**: `ADMIN`
+- **Query Params**:
+  - `role`: Optional filter (`STUDENT`, `STAFF`, `ADMIN`)
+  - `q`: Optional search substring matching name, email, hostel block, or room number
+  - `page`: Page index (default `0`)
+  - `size`: Page size (default `25`, max `100`)
+- **Response** (`200 OK`):
+  ```json
+  {
+    "users": [
+      {
+        "userId": 10,
+        "email": "priya.sharma@vitstudent.ac.in",
+        "name": "Priya Sharma",
+        "role": "STUDENT",
+        "active": true,
+        "createdAt": "2026-10-15T09:00:00Z",
+        "roomNumber": "402",
+        "hostelBlock": "D"
+      }
+    ],
+    "total": 54,
+    "page": 0,
+    "size": 25
+  }
+  ```
+
+### 4.10 Update User Account (Admin Override)
+- **Method**: `PUT`
+- **Path**: `/api/v1/admin/users/{id}`
+- **Auth**: `ADMIN`
+- **Request Body**:
+  ```json
+  {
+    "name": "Priya Sharma",
+    "active": true,
+    "roomNumber": "505",
+    "hostelBlock": "D"
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "message": "User updated successfully",
+    "user": {
+      "userId": 10,
+      "email": "priya.sharma@vitstudent.ac.in",
+      "name": "Priya Sharma",
+      "role": "STUDENT",
+      "active": true,
+      "roomNumber": "505",
+      "hostelBlock": "D"
+    }
+  }
+  ```
+
+### 4.11 Deactivate User Account (Soft Delete)
+- **Method**: `DELETE`
+- **Path**: `/api/v1/admin/users/{id}`
+- **Auth**: `ADMIN`
+- **Response** (`200 OK`):
+  ```json
+  {
+    "message": "User deactivated successfully"
+  }
+  ```
+
+### 4.12 Update Staff Profile (Admin)
+- **Method**: `PUT`
+- **Path**: `/api/v1/admin/staff/{id}`
+- **Auth**: `ADMIN`
+- **Request Body**:
+  ```json
+  {
+    "specialization": "ELECTRICAL",
+    "available": true
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "message": "Staff updated successfully",
+    "staff": {
+      "userId": 2,
+      "email": "arun.kumar@vit.ac.in",
+      "name": "Arun Kumar",
+      "role": "STAFF",
+      "active": true,
+      "specialization": "ELECTRICAL",
+      "specializationDisplay": "Electrical Maintenance",
+      "available": true
+    }
+  }
+  ```
 
 ---
 

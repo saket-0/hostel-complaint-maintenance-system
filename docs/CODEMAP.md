@@ -5,16 +5,15 @@
 
 ## 1. Top 5 Largest Files (Line Counts & Major Methods)
 
-- **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/ComplaintDao.java`** (713 lines)
+- **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/ComplaintDao.java`** (745 lines)
   - Key methods: save() ~L151, findById() ~L196, update() ~L222, search() ~L299, isDuplicate() ~L447, staffWorkload() ~L628
+- **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/UserDao.java`** (485 lines)
+- **`hcms-web/src/main/java/edu/vit/hcms/web/controller/AdminController.java`** (464 lines)
+  - Key methods: triage() ~L49, listComplaints() ~L188, assign() ~L239, autoAssign() ~L250, listStaff() ~L260, analytics() ~L298
 - **`hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`** (450 lines)
   - Key methods: registerComplaint() ~L95, assignComplaint() ~L152, autoAssignComplaint() ~L195, updateComplaintStatus() ~L227, reopenComplaint() ~L272
 - **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/SupportDao.java`** (384 lines)
   - Key methods: saveHistory() ~L34, findHistoryByComplaintId() ~L58, saveFeedback() ~L124, saveComment() ~L182, saveNotification() ~L237
-- **`hcms-web/src/main/java/edu/vit/hcms/web/controller/AdminController.java`** (366 lines)
-  - Key methods: triage() ~L49, listComplaints() ~L188, assign() ~L239, autoAssign() ~L250, listStaff() ~L260, analytics() ~L298
-- **`hcms-web/src/main/java/edu/vit/hcms/web/controller/ComplaintController.java`** (313 lines)
-  - Key methods: create() ~L40, getMyComplaints() ~L61, getById() ~L77, uploadAttachment() ~L156, reopen() ~L196, close() ~L207
 
 ---
 
@@ -53,7 +52,7 @@
 - `hcms-core/src/main/java/edu/vit/hcms/core/model/Notification.java`: User alert entity with read/unread status; key methods: getId(), setId(), getUserId(), setUserId()
 - `hcms-core/src/main/java/edu/vit/hcms/core/model/Student.java`: Student user entity with hostel block and room number; key methods: getDashboardView(), getPermissions(), getRoomNumber(), setRoomNumber()
 - `hcms-core/src/main/java/edu/vit/hcms/core/model/User.java`: Abstract base class for all system users; key methods: getDashboardView(), onLogin(), onLogout(), getUserId()
-- `hcms-core/src/main/java/edu/vit/hcms/core/policy/ComplaintActionPolicy.java`: Policy evaluator for role-based contextual UI actions; key methods: allowedActions(), isWithinReopenWindow()
+- `hcms-core/src/main/java/edu/vit/hcms/core/policy/ComplaintActionPolicy.java`: Policy evaluator for role-based contextual UI actions; key methods: allowedActions(), allowedActions(), isWithinReopenWindow()
 - `hcms-core/src/main/java/edu/vit/hcms/core/util/ComplaintIdGenerator.java`: Thread-safe sequential complaint identifier generator (HCM-YYYY-NNNNNN); key methods: nextId(), getCurrentSequence()
 
 ### hcms-persistence
@@ -74,6 +73,7 @@
 - `hcms-service/src/main/java/edu/vit/hcms/service/notification/NotificationService.java`: Dispatches in-app notifications and admin broadcasts; key methods: sendAsync(), notifyUser(), getNotifications(), getUnreadCount()
 - `hcms-service/src/main/java/edu/vit/hcms/service/strategy/LeastWorkloadStrategy.java`: Assignment strategy picking available staff with fewest open complaints; key methods: selectStaff(), getStrategyName()
 - `hcms-service/src/main/java/edu/vit/hcms/service/strategy/SpecializationMatchStrategy.java`: Assignment strategy matching category to staff specialization; key methods: selectStaff(), getStrategyName()
+- `hcms-service/src/main/java/edu/vit/hcms/service/user/UserManager.java`: Central business service managing user profiles, staff details, and administrative account governance; key methods: getUserById(), listUsers(), countUsers(), updateStaff()
 
 ### hcms-web
 - `hcms-web/src/main/java/edu/vit/hcms/web/HcmsApplication.java`: Javalin web server bootstrapper, routing table, and filter registrations; key methods: getStartTime(), main(), createServer()
@@ -83,18 +83,22 @@
 - `hcms-web/src/main/java/edu/vit/hcms/web/controller/HealthController.java`: System healthcheck, database ping, and uptime endpoints; key methods: health(), metrics()
 - `hcms-web/src/main/java/edu/vit/hcms/web/controller/NotificationController.java`: User notification queries and mark-as-read endpoints; key methods: getNotifications(), markAsRead()
 - `hcms-web/src/main/java/edu/vit/hcms/web/controller/StaffController.java`: Staff task list, availability toggling, and task status updates; key methods: getTasks(), getTaskHistory(), acceptTask(), updateStatus()
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/AssignStaffRequest.java`: Handles AssignStaffRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/AvailabilityRequest.java`: Handles AvailabilityRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/ChangePasswordRequest.java`: Handles ChangePasswordRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CommentRequest.java`: Handles CommentRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CreateComplaintRequest.java`: Handles CreateComplaintRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CreateStaffRequest.java`: Handles CreateStaffRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/FeedbackRequest.java`: Handles FeedbackRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/LoginRequest.java`: Handles LoginRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/RegisterRequest.java`: Handles RegisterRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/ReopenRequest.java`: Handles ReopenRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdatePriorityRequest.java`: Handles UpdatePriorityRequest operations
-- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdateStatusRequest.java`: Handles UpdateStatusRequest operations
+- `hcms-web/src/main/java/edu/vit/hcms/web/controller/UserController.java`: User profile inspection and self-service updates for all authenticated roles; key methods: getProfile(), updateProfile(), toUserMap()
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/AdminUpdateUserRequest.java`: Admin DTO payload for modifying student/staff profiles, roles, and status
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/AssignStaffRequest.java`: Admin DTO payload for assigning maintenance staff to complaints
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/AvailabilityRequest.java`: Staff DTO payload for updating on-duty availability status
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/ChangePasswordRequest.java`: User DTO payload for changing account credentials
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CommentRequest.java`: Threaded complaint comment DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CreateComplaintRequest.java`: Student complaint submission DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/CreateStaffRequest.java`: Admin staff account creation DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/FeedbackRequest.java`: Student rating and feedback submission DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/LoginRequest.java`: User authentication credentials DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/RegisterRequest.java`: Student account registration DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/ReopenRequest.java`: Student complaint reopening DTO payload with reason
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdatePriorityRequest.java`: Admin complaint priority override DTO payload
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdateProfileRequest.java`: User DTO payload for self-service profile and availability updates
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdateStaffRequest.java`: Admin DTO payload for updating staff specialization and availability
+- `hcms-web/src/main/java/edu/vit/hcms/web/dto/UpdateStatusRequest.java`: Staff task status progression DTO payload
 - `hcms-web/src/main/java/edu/vit/hcms/web/filter/AuthFilter.java`: Javalin before-filter enforcing JWT authentication and role authorization; key methods: requireAuth(), requireRole()
 - `hcms-web/src/main/java/edu/vit/hcms/web/filter/CorsFilter.java`: Javalin filter adding CORS headers for local/cross-origin frontend requests; key methods: register()
 - `hcms-web/src/main/java/edu/vit/hcms/web/filter/RateLimitFilter.java`: Sliding token bucket IP rate limiter protecting against abuse; key methods: checkLimit()
@@ -114,11 +118,13 @@
 - `hcms-persistence/.../SeedDataValidatorTest.java` $\rightarrow$ Tests **SeedDataValidator (schema & baseline rows verification)**
 - `hcms-service/.../AuthServiceTest.java` $\rightarrow$ Tests **AuthService (password hashing, JWT token lifecycle)**
 - `hcms-service/.../ComplaintManagerTest.java` $\rightarrow$ Tests **ComplaintManager (registration, auto-assignment, lifecycle)**
+- `hcms-service/.../UserManagerTest.java` $\rightarrow$ Tests **UserManager (profile updates, admin staff/student governance)**
 - `hcms-service/.../SlaEscalationEngineTest.java` $\rightarrow$ Tests **SlaEscalationEngine (SLA calculation, periodic checks)**
 - `hcms-service/.../StrategyTest.java` $\rightarrow$ Tests **SpecializationMatchStrategy, LeastWorkloadStrategy**
 - `hcms-web/.../AdminTriageIT.java` $\rightarrow$ Tests **AdminController (/api/admin/triage endpoints)**
 - `hcms-web/.../ComplaintStatusConsistencyIT.java` $\rightarrow$ Tests **ComplaintController & ComplaintStatus transitions**
 - `hcms-web/.../ContextualActionsIT.java` $\rightarrow$ Tests **ComplaintController action authorization**
+- `hcms-web/.../UserControllerTest.java` $\rightarrow$ Tests **UserController (profile endpoints and authorization)**
 - `hcms-web/.../AuthFilterTest.java` $\rightarrow$ Tests **AuthFilter (Bearer token validation & 401 handling)**
 - `hcms-web/.../RateLimitFilterTest.java` $\rightarrow$ Tests **RateLimitFilter (token bucket request throttling)**
 - `hcms-web/.../GlobalExceptionHandlerTest.java` $\rightarrow$ Tests **GlobalExceptionHandler (exception-to-HTTP mapping)**

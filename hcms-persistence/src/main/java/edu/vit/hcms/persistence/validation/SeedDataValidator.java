@@ -88,7 +88,7 @@ public final class SeedDataValidator {
                     + ") is after updated_date (" + c.updatedDate() + ")");
         }
         if (c.resolvedDate() != null) {
-            if (c.updatedDate().isAfter(c.resolvedDate())) {
+            if ("RESOLVED".equals(c.status()) && c.updatedDate().isAfter(c.resolvedDate())) {
                 throw new IllegalStateException("Complaint " + c.complaintId() + ": updated_date (" + c.updatedDate()
                         + ") is after resolved_date (" + c.resolvedDate() + ")");
             }

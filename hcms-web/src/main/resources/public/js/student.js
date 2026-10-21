@@ -319,6 +319,12 @@ function renderFilteredComplaints() {
             ? `${c.assignedStaffName || c.staffName}${c.assignedStaffSpecialization ? ` (${c.assignedStaffSpecialization})` : ''}`
             : 'Unassigned';
 
+        const blockVal = c.hostelBlock || c.studentHostelBlock || '';
+        const roomVal = c.roomNumber || c.studentRoomNumber || '';
+        const roomMeta = (blockVal || roomVal)
+            ? `<div class="footer-meta-item"><span>📍 Room:</span> ${escapeHtml(blockVal)}${blockVal && roomVal ? ' - ' : ''}${escapeHtml(roomVal)}</div>`
+            : '';
+
         card.innerHTML = `
             <div class="complaint-card-header">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -339,6 +345,7 @@ function renderFilteredComplaints() {
             <div class="complaint-card-footer">
                 <div class="footer-meta-item"><span>📅 Reported:</span> ${formatRelativeDate(c.createdDate)}</div>
                 <div class="footer-meta-item"><span>⏱ Due By:</span> ${formatDueStatus(c.dueBy, c.status)}</div>
+                ${roomMeta}
                 <div class="footer-meta-item"><span>👤 Staff:</span> ${escapeHtml(staffDisplay)}</div>
                 <div class="card-affordance" style="margin-left: auto;">View details ${getIcon('arrow-right', 'affordance-icon', 13)}</div>
             </div>
@@ -604,6 +611,45 @@ function renderComplaintDetail(c, history, comments) {
         </form>
     </div>`;
 
+    const studentNameVal = c.studentName;
+    const studentEmailVal = c.studentEmail;
+    const studentBlockVal = c.studentHostelBlock || c.hostelBlock;
+    const studentRoomVal = c.studentRoomNumber || c.roomNumber;
+    const hasStudentInfo = Boolean(studentNameVal || studentEmailVal || studentBlockVal || studentRoomVal);
+
+    const studentInfoHtml = hasStudentInfo ? `
+        <div class="student-detail-card">
+            <div class="student-detail-header">
+                <span class="student-detail-title">
+                    <span>👤</span> Student Information
+                </span>
+                <span class="student-badge">Student</span>
+            </div>
+            <div class="student-detail-grid">
+                <div class="student-detail-item">
+                    <span class="student-detail-label">Name</span>
+                    <span class="student-detail-value" title="${escapeHtml(studentNameVal || 'Unknown')}">
+                        ${escapeHtml(studentNameVal || 'Not specified')}
+                    </span>
+                </div>
+                <div class="student-detail-item">
+                    <span class="student-detail-label">Hostel & Room</span>
+                    <span class="student-detail-value">
+                        <span class="meta-tag">
+                            🏢 ${escapeHtml(studentBlockVal || 'Block ?')} - ${escapeHtml(studentRoomVal || 'Room ?')}
+                        </span>
+                    </span>
+                </div>
+                <div class="student-detail-item" style="grid-column: 1 / -1;">
+                    <span class="student-detail-label">Email</span>
+                    <span class="student-detail-value" style="font-family: var(--font-mono); font-size: 0.82rem;">
+                        ✉️ ${studentEmailVal ? `<a href="mailto:${escapeHtml(studentEmailVal)}" style="color:var(--navy); text-decoration:underline;">${escapeHtml(studentEmailVal)}</a>` : '<span style="color:var(--grey);">Not available</span>'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    ` : '';
+
     detailEl.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B1F4A; padding-bottom: 10px; margin-bottom: 14px; padding-right: 48px; flex-wrap: wrap; gap: 8px;">
             <h3 style="margin:0; white-space: nowrap;">${escapeHtml(c.complaintId)}</h3>
@@ -621,6 +667,7 @@ function renderComplaintDetail(c, history, comments) {
                 <span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>
             </div>
         </div>
+        ${studentInfoHtml}
         <p><strong>Category:</strong> ${escapeHtml(c.categoryDisplay || c.category)}</p>
         <p><strong>Description:</strong> ${escapeHtml(c.description)}</p>
         <p><strong>Assigned Staff:</strong> ${escapeHtml((c.assignedStaffName || c.staffName) ? `${c.assignedStaffName || c.staffName}${c.assignedStaffSpecialization ? ` (${c.assignedStaffSpecialization})` : ''}` : 'None assigned yet')}</p>

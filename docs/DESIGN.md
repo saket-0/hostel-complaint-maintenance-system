@@ -75,6 +75,13 @@ hcms-parent
 
 The method `ComplaintStatus.canTransitionTo(ComplaintStatus target)` validates transitions. Any unauthorized or invalid transition throws `InvalidStatusTransitionException`.
 
+### 2.4 User Governance & Profile Management
+- `UserManager`: Central business service managing user profile modifications, staff availability/specializations, and administrative user governance.
+- `UserController`: Thin REST controller exposing `/api/v1/users/profile` (`GET`, `PUT`) with authenticated JWT identity extraction (`ctx.attribute("userId")`) preventing user ID spoofing.
+- `AdminController`: Administrative REST controller exposing `/api/v1/admin/users` (`GET`), `/api/v1/admin/users/{id}` (`PUT`, `DELETE`), and `/api/v1/admin/staff/{id}` (`PUT`) protected by `Role.ADMIN` authorization checks.
+- **Role Boundary Enforcement**: Students can update their name, room number, and hostel block, but cannot escalate roles or modify email; Staff can update their name and toggle assignment availability; Administrators possess full override authority across accounts.
+- **Soft Deletion Policy**: Administrative deactivation sets `users.active = FALSE` rather than SQL `DELETE`, preserving foreign key references and historical integrity across complaints, comments, audit logs, and feedback.
+
 ---
 
 ## 3. Design Patterns Applied

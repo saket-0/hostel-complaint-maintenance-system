@@ -134,7 +134,21 @@ public class ComplaintController {
         }).collect(Collectors.toList()));
 
         // Resolve student and staff names
-        userDao.findById(complaint.getStudentId()).ifPresent(u -> response.put("studentName", u.getName()));
+        if (complaint.getStudentName() != null) {
+            response.put("studentName", complaint.getStudentName());
+            response.put("studentEmail", complaint.getStudentEmail());
+            response.put("studentRoomNumber", complaint.getStudentRoomNumber());
+            response.put("studentHostelBlock", complaint.getStudentHostelBlock());
+        } else {
+            userDao.findById(complaint.getStudentId()).ifPresent(u -> {
+                response.put("studentName", u.getName());
+                response.put("studentEmail", u.getEmail());
+                if (u instanceof Student s) {
+                    response.put("studentRoomNumber", s.getRoomNumber());
+                    response.put("studentHostelBlock", s.getHostelBlock());
+                }
+            });
+        }
         if (complaint.getStaffId() != null) {
             userDao.findById(complaint.getStaffId()).ifPresent(u -> {
                 response.put("staffName", u.getName());
@@ -311,6 +325,10 @@ public class ComplaintController {
         m.put("assignedStaffName", c.getAssignedStaffName());
         m.put("assignedStaffSpecialization", c.getAssignedStaffSpecialization());
         m.put("staffName", c.getAssignedStaffName());
+        m.put("studentName", c.getStudentName());
+        m.put("studentEmail", c.getStudentEmail());
+        m.put("studentRoomNumber", c.getStudentRoomNumber());
+        m.put("studentHostelBlock", c.getStudentHostelBlock());
         m.put("feedbackGiven", c.isFeedbackGiven());
         m.put("allowedActions", c.getAllowedActions());
         return m;

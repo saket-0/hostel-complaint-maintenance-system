@@ -106,6 +106,10 @@ class DaoIntegrationIT {
         assertTrue(found.isPresent());
         assertEquals(ComplaintStatus.NEW, found.get().getStatus());
         assertEquals(Priority.HIGH, found.get().getPriority());
+        assertEquals("Priya Sharma", found.get().getStudentName());
+        assertEquals("priya.sharma@vitstudent.ac.in", found.get().getStudentEmail());
+        assertEquals("101", found.get().getStudentRoomNumber());
+        assertEquals("A", found.get().getStudentHostelBlock());
 
         // Update status to ASSIGNED
         complaint.setStatus(ComplaintStatus.ASSIGNED);

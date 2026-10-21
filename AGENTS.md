@@ -10,11 +10,12 @@
 
 ## Where Things Live (Verified Paths - Consult docs/CODEMAP.md for Full Map)
 - **Complaint Business Logic**: `hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`
+- **User Governance Service**: `hcms-service/src/main/java/edu/vit/hcms/service/user/UserManager.java`
 - **Status State Machine**: `hcms-core/src/main/java/edu/vit/hcms/core/enums/ComplaintStatus.java`
 - **Auto-Assignment Strategies**: `hcms-service/src/main/java/edu/vit/hcms/service/strategy/` (`SpecializationMatchStrategy.java`, `LeastWorkloadStrategy.java`)
 - **SLA & Escalation Engine**: `hcms-service/src/main/java/edu/vit/hcms/service/engine/SlaEscalationEngine.java`
 - **DAOs & DB Access**: `hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/` (`ComplaintDao.java`, `UserDao.java`, `SupportDao.java`)
-- **REST Controllers**: `hcms-web/src/main/java/edu/vit/hcms/web/controller/{Admin,Auth,Complaint,Health,Notification,Staff}Controller.java`
+- **REST Controllers**: `hcms-web/src/main/java/edu/vit/hcms/web/controller/{Admin,Auth,Complaint,Health,Notification,Staff,User}Controller.java`
 - **Frontend JavaScript**: `hcms-web/src/main/resources/public/js/{admin,api,app,auth,dates,history,icons,metrics,notifications,staff,student,toast}.js`
 - **Frontend Entry & UI**: `hcms-web/src/main/resources/public/index.html` & `hcms-web/src/main/resources/public/css/style.css`
 - **DB Migrations**: `hcms-persistence/src/main/resources/db/migration/` (`V1__create_schema.sql`, `V2__seed_data.sql`)

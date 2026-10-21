@@ -302,11 +302,19 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--danger);
+    color: var(--navy);
     transition: background 0.1s ease;
 }
 
 .dropdown-item:hover {
+    background: var(--bg-cream);
+}
+
+.dropdown-item.danger {
+    color: var(--danger);
+}
+
+.dropdown-item.danger:hover {
     background: #FEE2E2;
 }
 
@@ -878,6 +886,92 @@ main#app {
 .complaint-card:hover .card-affordance {
     transform: translateX(3px);
     text-decoration: underline;
+}
+
+/* Student Information Metadata & Badges (Phase 4) */
+.student-detail-card {
+    background: #F8FAFC;
+    border: 2px solid var(--border-color);
+    box-shadow: 2.5px 2.5px 0 var(--border-color);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 14px 0;
+}
+
+.student-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1.5px dashed #CBD5E1;
+}
+
+.student-detail-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.student-badge {
+    background: #E0F2FE;
+    color: #0369A1;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid #7DD3FC;
+    text-transform: uppercase;
+}
+
+.student-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.student-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.student-detail-label {
+    font-size: 0.72rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.student-detail-value {
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    word-break: break-word;
+}
+
+.meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #F1F5F9;
+    border: 1px solid var(--border-color);
+    color: var(--navy);
+    font-weight: 600;
 }
 
 /* Student Filter Chips */
@@ -1911,3 +2005,128 @@ main#app {
         gap: 6px;
     }
 }
+
+/* ==========================================================================
+   Universal User Profile Modal Styles
+   ========================================================================== */
+.modal-header-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px dashed #CBD5E1;
+}
+
+.profile-avatar-lg {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--white);
+    font-weight: 900;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0 var(--border-color);
+    flex-shrink: 0;
+}
+
+.profile-header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profile-meta-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.role-specific-fields {
+    background: var(--bg-cream);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 3px 3px 0 var(--border-color);
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--grey);
+    margin-top: 4px;
+    font-family: var(--font-body);
+}
+
+.toggle-label {
+    user-select: none;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--navy);
+    font-size: 0.88rem;
+}
+
+.toggle-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--navy);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+    background: #F1F5F9;
+    color: #64748B;
+    cursor: not-allowed;
+    border-color: #CBD5E1;
+}
+
+/* User & Staff Management Enhancements */
+.btn-outline.danger {
+    color: #DC2626;
+    border-color: #DC2626;
+}
+
+.btn-outline.danger:hover {
+    background-color: #FEE2E2;
+    border-color: #B91C1C;
+}
+
+.user-mgmt-tabs {
+    margin-bottom: 20px;
+}
+
+.user-table-toolbar {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.user-table-toolbar .search-box {
+    width: 100%;
+    max-width: 420px;
+}
+
+.staff-card-inactive {
+    opacity: 0.72;
+    background: #F8FAFC;
+    border-style: dashed;
+}
+
+.badge-inactive {
+    background: #F1F5F9;
+    color: #64748B;
+    border: 1px solid #CBD5E1;
+    font-weight: 700;
+}
+
+.user-avatar-sm {
+    flex-shrink: 0;
+}
+

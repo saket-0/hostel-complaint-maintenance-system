@@ -102,6 +102,12 @@ export async function loadStaffTasks(isCompleted = false) {
                 ? `<span title="${formatExactDate(task.resolvedDate || task.updatedDate)}">Resolved ${formatRelativeDate(task.resolvedDate || task.updatedDate)}</span>`
                 : `<span title="${formatExactDate(task.dueBy)}">${formatDueStatus(task.dueBy, task.status)}</span>`;
 
+            const blockVal = task.hostelBlock || task.studentHostelBlock || '';
+            const roomVal = task.roomNumber || task.studentRoomNumber || '';
+            const locationTag = (blockVal || roomVal)
+                ? `<span class="meta-tag" title="Hostel Location">🏢 ${escapeHtml(blockVal)}${blockVal && roomVal ? ' - ' : ''}${escapeHtml(roomVal)}</span>`
+                : '';
+
             card.innerHTML = `
                 <div class="complaint-card-header">
                     <span class="complaint-id font-mono">${escapeHtml(task.complaintId)}</span>
@@ -116,9 +122,12 @@ export async function loadStaffTasks(isCompleted = false) {
                     ${feedbackHtml}
                 </div>
                 <div class="complaint-card-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; color:var(--grey);">
-                        ${getIcon('user', '', 14)} ${escapeHtml(task.studentName || 'Student')}
-                    </span>
+                    <div style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; font-weight:600; color:var(--navy);">
+                            ${getIcon('user', '', 14)} ${escapeHtml(task.studentName || 'Student')}
+                        </span>
+                        ${locationTag}
+                    </div>
                     <span style="font-size:0.85rem;">${dateDisplay}</span>
                     <div style="display:flex; gap: 8px; align-items:center;">
                         <button class="btn btn-outline btn-sm btn-view-details" data-id="${task.complaintId}">Details</button>

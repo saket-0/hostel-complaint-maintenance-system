@@ -179,6 +179,10 @@ classDiagram
     class Complaint {
         -String complaintId
         -Long studentId
+        -String studentName
+        -String studentEmail
+        -String studentRoomNumber
+        -String studentHostelBlock
         -Long staffId
         -Category category
         -String description
@@ -257,6 +261,7 @@ Every concept taught in the Advanced Java curriculum is purposefully integrated 
 | **Multithreading: Shutdown Hooks** | Graceful thread & pool draining | [`HcmsApplication.java`](file:///Users/ship/Desktop/Java%20Project/hcms-web/src/main/java/edu/vit/hcms/web/HcmsApplication.java) | `Runtime.getRuntime().addShutdownHook` ensures zero data loss upon application termination. |
 | **JDBC: DAO & Connection Pool** | PreparedStatement + HikariCP | [`DatabaseManager.java`](file:///Users/ship/Desktop/Java%20Project/hcms-persistence/src/main/java/edu/vit/hcms/persistence/db/DatabaseManager.java)<br/>[`ComplaintDao.java`](file:///Users/ship/Desktop/Java%20Project/hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/ComplaintDao.java) | Connection pooling with tuned statement caches; 100% prepared statements; zero SQL injection. |
 | **JDBC: Transaction Management** | Programmatic Commit & Rollback | [`TransactionManager.java`](file:///Users/ship/Desktop/Java%20Project/hcms-persistence/src/main/java/edu/vit/hcms/persistence/db/TransactionManager.java) | Thread-local connection binding guaranteeing atomic multi-step operations. |
+| **Domain Services & Validation** | Business logic layer | [`UserManager.java`](file:///Users/ship/Desktop/Java%20Project/hcms-service/src/main/java/edu/vit/hcms/service/user/UserManager.java) | Coordinates student profile self-service updates, staff availability toggles, and administrative account governance. |
 
 ---
 
@@ -341,10 +346,12 @@ The user interface is a zero-dependency **Single Page Application (SPA)** writte
 - **Single-Level Navigation**: Exactly one top navigation bar per role with active route highlighting, route guards, and automatic redirects:
   - **Student**: `My Complaints (#/mine)` | `+ New Complaint (#/new)` | Notification Bell | Profile Menu
   - **Staff**: `My Tasks (#/tasks)` | `Completed (#/completed)` | Notification Bell | Profile Menu
-  - **Admin**: `Triage (#/triage)` | `All Complaints (#/complaints)` | `Analytics (#/analytics)` | `Staff (#/staff)` | Notification Bell | Profile Menu
+  - **Admin**: `Triage (#/triage)` | `All Complaints (#/complaints)` | `Analytics (#/analytics)` | `Staff & Users (#/staff)` | Notification Bell | Profile Menu
 - **Admin Triage Board**: Four live clickable counter cards (Unassigned, Overdue, Reopened, High-Priority Open) that instantaneously filter the triage table sorted by priority and age.
+- **Admin Staff & User Management**: Tabbed interface featuring Maintenance Staff roster (with specialization edit modal, duty availability toggle, and deactivation) and Student Directory (with live search by name/room/block, pagination, and room/block editing modal).
+- **Universal User Profile Modal**: Reusable modal accessible from top navigation for all roles: Students can self-service update their hostel block and room number with validation; Staff can toggle on-duty availability; Admins can inspect their administrative role.
 - **Contextual Actions**: Driven strictly by the server (`allowedActions` in DTO); users only see actionable buttons valid for their role and the complaint's lifecycle stage.
-- **Interactive Detail Drawer**: Right-side slide-over drawer displaying complaint metadata, progress stepper, assigned staff, SLA due status, comments thread, audit history, and feedback.
+- **Interactive Detail Drawer**: Right-side slide-over drawer displaying a dedicated **Student Information Card** (student name, block, room, email), complaint metadata, progress stepper, assigned staff, SLA due status, comments thread, audit history, and feedback.
 - **Offline Charting**: Includes locally bundled, zero-CDN canvas charting (`chart.min.js`) for status distribution, category breakdown, and 30-day trends.
 - **Built with Java Live Ticker**: Prominently displays JVM version, server uptime, active threads, and queue health in a subtle, accessible footer.
 
@@ -366,6 +373,8 @@ mvn clean verify
 - **`ComplaintStatusTest`**: Validates the complete state machine transition matrix and rejection of illegal status skips.
 - **`ComplaintIdGeneratorTest`**: Multi-threaded concurrency stress test verifying that `AtomicLong` and sequence counters produce 0 collision duplicates under high thread contention.
 - **`ComplaintManagerTest`**: Verifies keyword priority auto-detection (`short circuit` -> `HIGH`), duplicate submission prevention within 10 minutes, `PriorityQueue` triage ordering, `LinkedHashMap` LRU cache hit/miss semantics, and `Deque` activity history bounds.
+- **`UserManagerTest`**: Verifies user profile updates, validation rules, admin staff/student overrides, and soft-deactivation.
+- **`UserControllerTest`**: Validates user profile REST endpoints (`GET`, `PUT`), JWT user extraction, and role authorization.
 - **`StrategyTest`**: Validates `LeastWorkloadStrategy` and `SpecializationMatchStrategy`.
 - **`SlaEscalationEngineTest`**: Tests automatic priority escalation for overdue tickets and auto-closing of resolved complaints.
 - **`AuthFilterTest` & `RateLimitFilterTest`**: Tests JWT extraction, RBAC protection, and sliding window rate limiting.
@@ -388,3 +397,7 @@ mvn clean verify
 
 - [REST API Reference](docs/API.md) — Comprehensive endpoint specifications, request/response bodies, and HTTP status codes.
 - [Design & Architecture Document](docs/DESIGN.md) — Deep dive into OOP patterns, concurrency architecture, collections, and state machines.
+- [Architecture CodeMap](docs/CODEMAP.md) — Concise class directory, key method locations, and test suite targets.
+- [Developer & Agent Guide](AGENTS.md) — Workspace rules, strict one-way module dependencies, and fast verification commands.
+- [Workflows Manual](docs/WORKFLOWS.md) — Standard operating procedures and slash command workflows for rapid feature delivery.
+- [Lessons Learned](docs/LESSONS.md) — Concurrency, schema, and API evolution learnings.
