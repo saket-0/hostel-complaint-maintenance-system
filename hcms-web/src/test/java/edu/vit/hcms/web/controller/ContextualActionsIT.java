@@ -34,8 +34,8 @@ class ContextualActionsIT {
         client = HttpClient.newHttpClient();
 
         adminToken = login("admin@vit.ac.in", "password123");
-        studentToken = login("priya.s@vitstudent.ac.in", "password123");
-        staffToken = login("staff.arun@vit.ac.in", "password123");
+        studentToken = login("priya.sharma@vitstudent.ac.in", "password123");
+        staffToken = login("arun.kumar@vit.ac.in", "password123");
     }
 
     private static String login(String email, String password) throws Exception {

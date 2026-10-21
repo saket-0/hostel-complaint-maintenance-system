@@ -314,14 +314,22 @@ The database is pre-seeded with realistic data across all roles:
 
 | Role | Name | Email | Password | Details |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | Dr. K. Ramanathan | `admin@vit.ac.in` | `admin123` | Chief Warden (Full administrative access, triage, auto-assign, analytics) |
-| **Staff** | Murugan S. | `murugan.elec@vit.ac.in` | `staff123` | Specialization: `ELECTRICAL` (Available) |
-| **Staff** | Palani K. | `palani.plumb@vit.ac.in` | `staff123` | Specialization: `PLUMBING` (Available) |
-| **Staff** | Anand R. | `anand.wifi@vit.ac.in` | `staff123` | Specialization: `WIFI` (Available) |
-| **Staff** | Saravanan M. | `saravanan.ac@vit.ac.in` | `staff123` | Specialization: `AC` (Available) |
-| **Student** | Rohan Gupta | `rohan.g2023@vitstudent.ac.in` | `student123` | Room 301, Block A |
-| **Student** | Priya Sharma | `priya.s2023@vitstudent.ac.in` | `student123` | Room 204, Block B |
-| **Student** | Karthik V. | `karthik.v2024@vitstudent.ac.in` | `student123` | Room 112, Block C |
+| **Admin** | Dr. Ramesh Kumar | `admin@vit.ac.in` | `password123` | Chief Warden (Full administrative access, triage, auto-assign, analytics) |
+| **Staff** | Arun Kumar | `arun.kumar@vit.ac.in` | `password123` | Specialization: `ELECTRICAL` (Available) |
+| **Staff** | Bala Murugan | `bala.murugan@vit.ac.in` | `password123` | Specialization: `PLUMBING` (Available) |
+| **Staff** | Chandra Sekhar | `chandra.sekhar@vit.ac.in` | `password123` | Specialization: `NETWORK` (Available) |
+| **Staff** | Dinesh Karthik | `dinesh.karthik@vit.ac.in` | `password123` | Specialization: `HVAC` (Available) |
+| **Student** | Priya Sharma | `priya.sharma@vitstudent.ac.in` | `password123` | Room 101, Block A |
+| **Student** | Suresh Menon | `suresh.menon@vitstudent.ac.in` | `password123` | Room 225, Block B |
+| **Student** | Rahul Verma | `rahul.verma@vitstudent.ac.in` | `password123` | Room 205, Block A |
+| **Student** | Anjali Patel | `anjali.patel@vitstudent.ac.in` | `password123` | Room 302, Block B |
+| **Student** | Karthik Reddy | `karthik.reddy@vitstudent.ac.in` | `password123` | Room 410, Block B |
+| **Student** | Sneha Iyer | `sneha.iyer@vitstudent.ac.in` | `password123` | Room 108, Block C |
+| **Student** | Vijay Kumar | `vijay.kumar@vitstudent.ac.in` | `password123` | Room 215, Block C |
+| **Student** | Meera Nair | `meera.nair@vitstudent.ac.in` | `password123` | Room 320, Block D |
+| **Student** | Arjun Das | `arjun.das@vitstudent.ac.in` | `password123` | Room 425, Block D |
+| **Student** | Deepika Raj | `deepika.raj@vitstudent.ac.in` | `password123` | Room 112, Block A |
+| **Student** | Rohan Gupta | `rohan.gupta@vitstudent.ac.in` | `password123` | Room 301, Block A |
 
 ---
 

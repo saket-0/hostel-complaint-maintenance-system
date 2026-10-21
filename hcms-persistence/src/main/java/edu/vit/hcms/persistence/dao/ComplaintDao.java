@@ -155,6 +155,18 @@ public class ComplaintDao {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         Connection conn = txManager.getConnection();
+        LocalDateTime created = complaint.getCreatedDate() != null
+                ? complaint.getCreatedDate()
+                : LocalDateTime.now();
+        LocalDateTime updated = complaint.getUpdatedDate() != null
+                ? complaint.getUpdatedDate()
+                : created;
+        int version = complaint.getVersion() <= 0 ? 1 : complaint.getVersion();
+
+        complaint.setCreatedDate(created);
+        complaint.setUpdatedDate(updated);
+        complaint.setVersion(version);
+
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, complaint.getComplaintId());
             ps.setLong(2, complaint.getStudentId());
@@ -167,8 +179,8 @@ public class ComplaintDao {
             ps.setString(5, complaint.getDescription());
             ps.setInt(6, complaint.getPriority().getLevel());
             ps.setString(7, complaint.getStatus().name());
-            ps.setTimestamp(8, Timestamp.valueOf(complaint.getCreatedDate()));
-            ps.setTimestamp(9, Timestamp.valueOf(complaint.getUpdatedDate()));
+            ps.setTimestamp(8, Timestamp.valueOf(created));
+            ps.setTimestamp(9, Timestamp.valueOf(updated));
             if (complaint.getResolvedDate() != null) {
                 ps.setTimestamp(10, Timestamp.valueOf(complaint.getResolvedDate()));
             } else {
@@ -179,7 +191,7 @@ public class ComplaintDao {
             } else {
                 ps.setNull(11, Types.TIMESTAMP);
             }
-            ps.setInt(12, complaint.getVersion());
+            ps.setInt(12, version);
             ps.executeUpdate();
             log.info("Saved complaint: {}", complaint.getComplaintId());
             return complaint;

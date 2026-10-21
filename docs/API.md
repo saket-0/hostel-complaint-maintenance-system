@@ -46,7 +46,7 @@ When an error occurs, the server responds with a consistent JSON body and no lea
   ```json
   {
     "name": "Aarav Patel",
-    "email": "aarav.p2024@vitstudent.ac.in",
+    "email": "aarav.patel@vitstudent.ac.in",
     "password": "Password123!",
     "roomNumber": "402",
     "hostelBlock": "D"
@@ -57,7 +57,7 @@ When an error occurs, the server responds with a consistent JSON body and no lea
   {
     "message": "Registration successful",
     "userId": 15,
-    "email": "aarav.p2024@vitstudent.ac.in"
+    "email": "aarav.patel@vitstudent.ac.in"
   }
   ```
 
@@ -109,7 +109,7 @@ When an error occurs, the server responds with a consistent JSON body and no lea
   {
     "userId": 5,
     "name": "Rohan Gupta",
-    "email": "rohan.g2023@vitstudent.ac.in",
+    "email": "rohan.gupta@vitstudent.ac.in",
     "role": "STUDENT",
     "dashboard": "STUDENT_PORTAL",
     "permissions": ["CREATE_COMPLAINT", "VIEW_OWN_COMPLAINTS", "GIVE_FEEDBACK"],

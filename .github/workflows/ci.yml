@@ -49,9 +49,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: surefire-and-coverage-reports
+          name: test-and-coverage-reports
           path: |
             **/target/surefire-reports/
+            **/target/failsafe-reports/
             **/target/site/jacoco/
 
       - name: Build Multi-Stage Docker Image

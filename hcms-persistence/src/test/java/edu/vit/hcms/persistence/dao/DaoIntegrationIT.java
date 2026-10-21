@@ -42,12 +42,19 @@ class DaoIntegrationIT {
 
     @BeforeAll
     static void setUpAll() {
-        Assumptions.assumeTrue(DockerClientFactory.instance().isDockerAvailable(),
-                "Docker is not running or available. Skipping MySQL Testcontainers tests.");
-
-        MYSQL.start();
-
-        dbManager = new DatabaseManager(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
+        String envDbUrl = System.getenv("DB_URL");
+        if (envDbUrl != null && !envDbUrl.isBlank()) {
+            String user = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "hcms";
+            String pass = System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD") : "hcmspass";
+            dbManager = new DatabaseManager(envDbUrl, user, pass);
+        } else {
+            Assumptions.assumeTrue(DockerClientFactory.instance().isDockerAvailable(),
+                    "Docker is not running or available. Skipping MySQL Testcontainers tests.");
+            if (!MYSQL.isRunning()) {
+                MYSQL.start();
+            }
+            dbManager = new DatabaseManager(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
+        }
 
         txManager = new TransactionManager(dbManager.getDataSource());
         userDao = new UserDao(txManager);
@@ -85,7 +92,7 @@ class DaoIntegrationIT {
 
         Complaint complaint = Complaint.builder()
                 .complaintId(complaintId)
-                .studentId(5L) // Seeded student
+                .studentId(6L) // Seeded student Priya Sharma
                 .category(Category.ELECTRICAL)
                 .description("Ceiling fan making clicking sound in room 301")
                 .priority(Priority.HIGH)
@@ -118,7 +125,7 @@ class DaoIntegrationIT {
         String complaintId = complaintDao.generateComplaintId();
         Complaint c1 = Complaint.builder()
                 .complaintId(complaintId)
-                .studentId(5L)
+                .studentId(6L)
                 .category(Category.PLUMBING)
                 .description("Water leakage under washbasin in 301")
                 .priority(Priority.MEDIUM)
@@ -148,20 +155,20 @@ class DaoIntegrationIT {
     void testSupportDaoOperations() {
         // Test notification
         Notification notification = new Notification();
-        notification.setUserId(5L);
+        notification.setUserId(6L);
         notification.setMessage("Your complaint has been acknowledged.");
         notification.setRead(false);
         notification.setCreatedAt(LocalDateTime.now());
         supportDao.saveNotification(notification);
 
-        List<Notification> notifications = supportDao.findNotificationsByUserId(5L, 10);
+        List<Notification> notifications = supportDao.findNotificationsByUserId(6L, 10);
         assertFalse(notifications.isEmpty());
 
         Notification n = notifications.get(0);
         assertFalse(n.isRead());
 
-        supportDao.markAsRead(n.getId(), 5L);
-        List<Notification> updatedNotifications = supportDao.findNotificationsByUserId(5L, 10);
+        supportDao.markAsRead(n.getId(), 6L);
+        List<Notification> updatedNotifications = supportDao.findNotificationsByUserId(6L, 10);
         assertTrue(updatedNotifications.stream().anyMatch(Notification::isRead));
     }
 }

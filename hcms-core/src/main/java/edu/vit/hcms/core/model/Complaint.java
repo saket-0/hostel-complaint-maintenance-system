@@ -159,6 +159,10 @@ public class Complaint {
         this.updatedDate = updatedDate;
     }
 
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
     /**
      * Checks if this complaint has breached its SLA deadline.
      *
