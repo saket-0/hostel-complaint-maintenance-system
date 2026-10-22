@@ -891,6 +891,8 @@ function renderComplaintDetail(c, history, comments) {
     const isAdmin = currentUser && currentUser.role === 'ADMIN';
     const isStaff = currentUser && currentUser.role === 'STAFF';
 
+    const detailPri = getPriorityInfo(c.priority);
+
     const isResolved = c.status === 'RESOLVED';
     const isClosed = c.status === 'CLOSED';
     const hasFeedback = (c.feedbackRating !== undefined && c.feedbackRating !== null) || (c.feedback && c.feedback.rating !== undefined);
