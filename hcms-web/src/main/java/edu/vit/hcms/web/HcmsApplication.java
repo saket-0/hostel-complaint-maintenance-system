@@ -222,6 +222,22 @@ public class HcmsApplication {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.autoAssign(ctx);
         });
+
+        // Two-step Auto-Assign Preview & Confirm routes
+        io.javalin.http.Handler autoAssignPreviewHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.previewAutoAssign(ctx);
+        };
+        io.javalin.http.Handler autoAssignConfirmHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            adminController.confirmAutoAssign(ctx);
+        };
+        app.post("/api/assignments/auto/preview", autoAssignPreviewHandler);
+        app.post("/api/v1/assignments/auto/preview", autoAssignPreviewHandler);
+        app.post("/api/v1/admin/assignments/auto/preview", autoAssignPreviewHandler);
+        app.post("/api/assignments/auto/confirm", autoAssignConfirmHandler);
+        app.post("/api/v1/assignments/auto/confirm", autoAssignConfirmHandler);
+        app.post("/api/v1/admin/assignments/auto/confirm", autoAssignConfirmHandler);
         app.get("/api/v1/admin/staff", ctx -> {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.listStaff(ctx);

@@ -118,6 +118,15 @@ export function openNewComplaintModal() {
     if (form) form.reset();
     selectedPhotoFile = null;
 
+    // Reset category tiles and errors
+    document.querySelectorAll('#categoryTilesGrid .choice-tile').forEach(t => t.classList.remove('active'));
+    const catInput = document.getElementById('complaintCategory');
+    if (catInput) catInput.value = '';
+    const catErr = document.getElementById('categoryInlineError');
+    if (catErr) catErr.style.display = 'none';
+    const descErr = document.getElementById('descInlineError');
+    if (descErr) descErr.style.display = 'none';
+
     // Reset location selector to My Room
     const locRoom = document.getElementById('locTypeRoom');
     const locCommon = document.getElementById('locTypeCommon');
@@ -130,7 +139,7 @@ export function openNewComplaintModal() {
     if (locRoomLabel) locRoomLabel.classList.add('active');
     if (locCommonLabel) locCommonLabel.classList.remove('active');
     if (commonGroup) commonGroup.style.display = 'none';
-    if (roomMeta) roomMeta.style.display = 'inline-flex';
+    if (roomMeta) roomMeta.style.display = 'flex';
 
     // Populate confirmed student room
     const user = getCurrentUser();
@@ -145,11 +154,9 @@ export function openNewComplaintModal() {
 
     // Reset safety risk toggle
     const safetyCard = document.getElementById('safetyRiskCard');
-    const safetyBadge = document.getElementById('safetyRiskBadge');
     const safetyCheckbox = document.getElementById('complaintSafetyRisk');
     if (safetyCheckbox) safetyCheckbox.checked = false;
     if (safetyCard) safetyCard.classList.remove('active');
-    if (safetyBadge) safetyBadge.style.display = 'none';
 
     // Reset photo dropzone
     const previewWrap = document.getElementById('photoPreviewWrap');
@@ -163,9 +170,17 @@ export function openNewComplaintModal() {
     const dupWarning = document.getElementById('duplicateComplaintWarning');
     if (dupWarning) dupWarning.style.display = 'none';
 
+    // Reset character count (hidden initially, only shown after 1800+ chars)
     if (charCount) {
+        charCount.style.display = 'none';
         charCount.textContent = '0 / 2000';
-        charCount.style.color = '#6C757D';
+    }
+
+    // Submit button disabled until valid
+    const submitBtn = document.getElementById('submitComplaintBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submit Complaint';
     }
 
     if (closeBtn) closeBtn.onclick = closeNewComplaintModal;
@@ -177,6 +192,12 @@ export function openNewComplaintModal() {
         if (e.key === 'Escape') closeNewComplaintModal();
     };
     document.addEventListener('keydown', newModalEscHandler);
+
+    // Focus the first interactive category tile on open
+    setTimeout(() => {
+        const firstTile = document.querySelector('#categoryTilesGrid .choice-tile');
+        if (firstTile) firstTile.focus();
+    }, 50);
 }
 
 export function closeNewComplaintModal() {
@@ -228,6 +249,23 @@ export function initStudentView(openNewForm = false) {
     const roomMeta = document.getElementById('roomLocationMeta');
     const commonDesc = document.getElementById('commonAreaDesc');
 
+    function validateComplaintForm() {
+        const cat = document.getElementById('complaintCategory')?.value;
+        const desc = descInput ? descInput.value.trim() : '';
+        const isCommon = locCommon && locCommon.checked;
+        const areaVal = commonDesc ? commonDesc.value.trim() : '';
+        const submitBtn = document.getElementById('submitComplaintBtn');
+
+        let isValid = Boolean(cat) && desc.length >= 10;
+        if (isCommon && !areaVal) {
+            isValid = false;
+        }
+        if (submitBtn) {
+            submitBtn.disabled = !isValid;
+        }
+        return isValid;
+    }
+
     function syncLocationUI() {
         if (locCommon && locCommon.checked) {
             if (locRoomLabel) locRoomLabel.classList.remove('active');
@@ -239,36 +277,53 @@ export function initStudentView(openNewForm = false) {
             if (locRoomLabel) locRoomLabel.classList.add('active');
             if (locCommonLabel) locCommonLabel.classList.remove('active');
             if (commonGroup) commonGroup.style.display = 'none';
-            if (roomMeta) roomMeta.style.display = 'inline-flex';
+            if (roomMeta) roomMeta.style.display = 'flex';
         }
+        validateComplaintForm();
     }
 
     if (locRoom) locRoom.onchange = syncLocationUI;
     if (locCommon) locCommon.onchange = syncLocationUI;
+    if (commonDesc) commonDesc.oninput = validateComplaintForm;
 
     // Safety hazard checkbox
     const safetyCheckbox = document.getElementById('complaintSafetyRisk');
     const safetyCard = document.getElementById('safetyRiskCard');
-    const safetyBadge = document.getElementById('safetyRiskBadge');
     if (safetyCheckbox) {
         safetyCheckbox.onchange = () => {
             if (safetyCheckbox.checked) {
                 if (safetyCard) safetyCard.classList.add('active');
-                if (safetyBadge) safetyBadge.style.display = 'inline-block';
             } else {
                 if (safetyCard) safetyCard.classList.remove('active');
-                if (safetyBadge) safetyBadge.style.display = 'none';
             }
         };
     }
 
+    // Category Choice Tiles selection
+    const categoryTiles = document.querySelectorAll('#categoryTilesGrid .choice-tile');
+    const categoryInput = document.getElementById('complaintCategory');
+    const catInlineError = document.getElementById('categoryInlineError');
+
+    categoryTiles.forEach(tile => {
+        tile.onclick = () => {
+            categoryTiles.forEach(t => t.classList.remove('active'));
+            tile.classList.add('active');
+            const cat = tile.getAttribute('data-category');
+            if (categoryInput) {
+                categoryInput.value = cat;
+            }
+            if (catInlineError) catInlineError.style.display = 'none';
+            checkClientDuplicate();
+            validateComplaintForm();
+        };
+    });
+
     // Duplicate detection helper
-    const categorySelect = document.getElementById('complaintCategory');
     const dupWarning = document.getElementById('duplicateComplaintWarning');
 
     function checkClientDuplicate() {
-        if (!categorySelect || !dupWarning) return;
-        const cat = categorySelect.value;
+        const cat = categoryInput ? categoryInput.value : '';
+        if (!dupWarning) return;
         if (!cat) {
             dupWarning.style.display = 'none';
             return;
@@ -299,8 +354,6 @@ export function initStudentView(openNewForm = false) {
         }
     }
 
-    if (categorySelect) categorySelect.onchange = checkClientDuplicate;
-
     // Photo drag & drop
     const dropzone = document.getElementById('photoDropzone');
     const photoInput = document.getElementById('complaintPhoto');
@@ -308,7 +361,6 @@ export function initStudentView(openNewForm = false) {
     const promptWrap = document.getElementById('dropzonePrompt');
     const previewImg = document.getElementById('photoPreviewImg');
     const previewName = document.getElementById('photoPreviewName');
-    const previewSize = document.getElementById('photoPreviewSize');
     const removeBtn = document.getElementById('removePhotoBtn');
 
     function handleFile(file) {
@@ -323,7 +375,6 @@ export function initStudentView(openNewForm = false) {
         }
         selectedPhotoFile = file;
         if (previewName) previewName.textContent = file.name;
-        if (previewSize) previewSize.textContent = `${Math.round(file.size / 1024)} KB`;
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -376,11 +427,26 @@ export function initStudentView(openNewForm = false) {
 
     const EMERGENCY_KEYWORDS = ['spark', 'sparks', 'sparking', 'flood', 'flooding', 'fire', 'smoke', 'burst', 'short circuit', 'gas leak', 'broken lock'];
 
-    if (descInput && charCount) {
+    if (descInput) {
         descInput.oninput = () => {
             const len = descInput.value.length;
-            charCount.textContent = `${len} / 2000`;
-            charCount.style.color = (len < 10) ? '#D90429' : '#6C757D';
+            const trimmedLen = descInput.value.trim().length;
+
+            // Show counter only after typing 1800+ characters
+            if (charCount) {
+                if (len >= 1800) {
+                    charCount.style.display = 'inline-block';
+                    charCount.textContent = `${len} / 2000`;
+                    charCount.style.color = (len >= 1950) ? 'var(--red)' : 'var(--grey)';
+                } else {
+                    charCount.style.display = 'none';
+                }
+            }
+
+            const descErr = document.getElementById('descInlineError');
+            if (trimmedLen >= 10 && descErr) {
+                descErr.style.display = 'none';
+            }
 
             // Auto-detect safety hazards
             const val = descInput.value.toLowerCase();
@@ -388,10 +454,10 @@ export function initStudentView(openNewForm = false) {
             if (hasEmergency && safetyCheckbox && !safetyCheckbox.checked) {
                 safetyCheckbox.checked = true;
                 if (safetyCard) safetyCard.classList.add('active');
-                if (safetyBadge) safetyBadge.style.display = 'inline-block';
                 showToast('Urgent keywords detected: Flagged as High Priority Safety Hazard', 'info', 3000);
             }
             checkClientDuplicate();
+            validateComplaintForm();
         };
     }
 
@@ -404,26 +470,36 @@ export function initStudentView(openNewForm = false) {
     if (complaintForm) {
         complaintForm.onsubmit = async (e) => {
             e.preventDefault();
-            const category = document.getElementById('complaintCategory').value;
-            const description = descInput.value.trim();
+            const category = document.getElementById('complaintCategory')?.value;
+            const description = descInput ? descInput.value.trim() : '';
+            let hasError = false;
 
             if (!category) {
-                showToast('Please select a category', 'error');
-                return;
+                const catErr = document.getElementById('categoryInlineError');
+                if (catErr) catErr.style.display = 'block';
+                hasError = true;
             }
             if (description.length < 10) {
-                showToast('Description must be at least 10 characters', 'error');
+                const descErr = document.getElementById('descInlineError');
+                if (descErr) descErr.style.display = 'block';
+                hasError = true;
+            }
+            if (locCommon && locCommon.checked) {
+                const area = (commonDesc?.value || '').trim();
+                if (!area) {
+                    showToast('Please specify the common area location', 'error');
+                    if (commonDesc) commonDesc.focus();
+                    hasError = true;
+                }
+            }
+
+            if (hasError) {
                 return;
             }
 
             let finalDescription = description;
             if (locCommon && locCommon.checked) {
                 const area = (commonDesc?.value || '').trim();
-                if (!area) {
-                    showToast('Please specify the common area location', 'error');
-                    if (commonDesc) commonDesc.focus();
-                    return;
-                }
                 finalDescription = `[Common Area: ${area}]\n\n${finalDescription}`;
             }
 
@@ -505,11 +581,19 @@ export function initStudentView(openNewForm = false) {
                 if (anotherBtn) {
                     anotherBtn.onclick = () => {
                         complaintForm.reset();
+                        document.querySelectorAll('#categoryTilesGrid .choice-tile').forEach(t => t.classList.remove('active'));
+                        if (categoryInput) categoryInput.value = '';
                         if (photoInput) photoInput.value = '';
+                        selectedPhotoFile = null;
                         if (charCount) {
+                            charCount.style.display = 'none';
                             charCount.textContent = '0 / 2000';
-                            charCount.style.color = '#6C757D';
                         }
+                        const catErr = document.getElementById('categoryInlineError');
+                        if (catErr) catErr.style.display = 'none';
+                        const descErr = document.getElementById('descInlineError');
+                        if (descErr) descErr.style.display = 'none';
+                        validateComplaintForm();
                         if (formView) formView.style.display = 'block';
                         if (successView) successView.style.display = 'none';
                     };
@@ -519,9 +603,10 @@ export function initStudentView(openNewForm = false) {
             } catch (err) {
                 showToast(err.message, 'error');
             } finally {
+                const submitBtn = document.getElementById('submitComplaintBtn');
                 if (submitBtn) {
-                    submitBtn.disabled = false;
                     submitBtn.textContent = 'Submit Complaint';
+                    validateComplaintForm();
                 }
             }
         };

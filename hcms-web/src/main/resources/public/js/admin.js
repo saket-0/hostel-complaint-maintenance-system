@@ -668,6 +668,926 @@ function setupCsvExport() {
     }
 }
 
+/**
+ * Ensures auto-assign confirmation modal styles are injected without adding new fonts or hex colors.
+ */
+function ensureAutoAssignStyles() {
+    if (document.getElementById('auto-assign-confirm-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'auto-assign-confirm-styles';
+    style.textContent = `
+        #autoAssignConfirmModal .modal-content {
+            padding: 0 !important;
+            overflow: hidden !important;
+            display: flex;
+            flex-direction: column;
+            background: var(--white);
+            border: 3px solid var(--border-color);
+            box-shadow: 8px 8px 0 var(--border-color);
+        }
+        #autoAssignConfirmModal.modal-single .modal-content {
+            max-width: 520px;
+            width: 92%;
+        }
+        #autoAssignConfirmModal.modal-group .modal-content {
+            max-width: 720px;
+            width: 95%;
+        }
+        .auto-assign-header {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--white);
+            flex-shrink: 0;
+        }
+        .auto-assign-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--navy);
+        }
+        .auto-assign-summary-strip {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg-light);
+            border-bottom: 2px solid var(--border-color);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--navy);
+            gap: 10px;
+            overflow-x: hidden;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .auto-assign-summary-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .auto-assign-summary-overdue {
+            color: var(--red);
+            font-weight: 700;
+        }
+        .auto-assign-scroll-body {
+            padding: 14px 18px;
+            max-height: 50vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1 1 auto;
+        }
+        .auto-assign-warnings {
+            background: #FFFBEB;
+            border: 1.5px solid var(--amber);
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            font-size: 0.82rem;
+            color: #7A4F01;
+        }
+        .auto-assign-warnings strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .auto-assign-warning-link {
+            color: #7A4F01;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .auto-assign-staff-group {
+            border: 2px solid var(--border-color);
+            background: var(--white);
+            margin-bottom: 12px;
+        }
+        .auto-assign-staff-header {
+            background: var(--bg-light);
+            border-bottom: 2px solid var(--border-color);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+        .auto-assign-staff-header strong {
+            color: var(--navy);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .auto-assign-staff-change {
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            color: var(--grey);
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        .auto-assign-ticket-row {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: var(--white);
+            outline: none;
+            transition: background 0.15s ease;
+        }
+        .auto-assign-ticket-row:last-child {
+            border-bottom: none;
+        }
+        .auto-assign-ticket-row:focus-visible, .auto-assign-ticket-row.is-focused {
+            background: #F0FDF4;
+            box-shadow: inset 3px 0 0 var(--teal);
+        }
+        .auto-assign-ticket-row.is-excluded {
+            background: var(--bg-muted);
+            opacity: 0.65;
+        }
+        .auto-assign-ticket-row.is-excluded .auto-assign-row-desc,
+        .auto-assign-ticket-row.is-excluded .auto-assign-ticket-id {
+            text-decoration: line-through;
+        }
+        .auto-assign-ticket-row.has-conflict {
+            background: #FEF2F2 !important;
+            border-left: 3px solid var(--red) !important;
+            opacity: 1 !important;
+        }
+        .auto-assign-row-main {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .auto-assign-row-top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+            flex-wrap: nowrap;
+        }
+        .auto-assign-ticket-id {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: var(--navy);
+            white-space: nowrap;
+        }
+        .auto-assign-row-desc {
+            font-size: 0.8rem;
+            color: var(--navy);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .auto-assign-row-meta {
+            font-size: 0.74rem;
+            color: var(--grey);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .auto-assign-row-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .auto-assign-remove-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--grey);
+            padding: 0;
+        }
+        .auto-assign-remove-btn:hover {
+            background: var(--red);
+            color: var(--white);
+            border-color: var(--red);
+        }
+        .auto-assign-undo-btn {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            padding: 2px 6px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .auto-assign-undo-btn:hover {
+            background: var(--teal);
+            color: var(--white);
+        }
+        .auto-assign-change-select {
+            padding: 2px 4px;
+            font-size: 0.75rem;
+            border: 1.5px solid var(--border-color);
+            background: var(--white);
+            max-width: 130px;
+        }
+        .auto-assign-conflict-msg {
+            color: var(--red);
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        .auto-assign-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            background: var(--white);
+            border-top: 2px solid var(--border-color);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .auto-assign-footer-counts {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--navy);
+        }
+        .auto-assign-footer-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .auto-assign-skeleton {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .auto-assign-skeleton-box {
+            background: #E2E8F0;
+            border-radius: 2px;
+            animation: aa-pulse 1.4s ease infinite;
+        }
+        @keyframes aa-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        @media (max-width: 640px) {
+            #autoAssignConfirmModal .modal-content {
+                width: 100% !important;
+                height: 100% !important;
+                max-height: 100vh !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .auto-assign-summary-strip {
+                flex-wrap: wrap;
+                font-size: 0.74rem;
+                padding: 6px 10px;
+            }
+            .auto-assign-ticket-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .auto-assign-row-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .auto-assign-change-select {
+                max-width: 100%;
+                flex: 1 1 auto;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Opens the Auto-Assign Confirmation Modal.
+ * Supports single ticket or group selection preview with live overrides, exclusions, and atomic confirmation.
+ */
+export async function openAutoAssignConfirmationModal(ticketIds, onRefresh) {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'ADMIN') {
+        showToast('Unauthorized: Only administrators can auto-assign tickets', 'error');
+        return;
+    }
+
+    if (!ticketIds || ticketIds.length === 0) {
+        showToast('No tickets selected for auto-assignment', 'warning');
+        return;
+    }
+
+    ensureAutoAssignStyles();
+
+    let modal = document.getElementById('autoAssignConfirmModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'autoAssignConfirmModal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML = `
+            <div class="modal-overlay" id="autoAssignOverlay"></div>
+            <div class="modal-content" id="autoAssignModalContent">
+                <div id="autoAssignModalBody"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    const isSingle = ticketIds.length === 1;
+    modal.classList.remove('modal-single', 'modal-group');
+    modal.classList.add(isSingle ? 'modal-single' : 'modal-group');
+    modal.style.display = 'flex';
+
+    let inFlight = false;
+    let keyHandler = null;
+
+    const closeModal = () => {
+        if (inFlight) return;
+        modal.style.display = 'none';
+        if (keyHandler) {
+            document.removeEventListener('keydown', keyHandler);
+            keyHandler = null;
+        }
+    };
+
+    const modalBody = modal.querySelector('#autoAssignModalBody');
+    modalBody.innerHTML = `
+        <div class="auto-assign-header">
+            <h3>Computing auto-assignment...</h3>
+            <button type="button" class="modal-close" id="closeAutoAssignModal" aria-label="Close">✕</button>
+        </div>
+        <div class="auto-assign-skeleton">
+            <div class="auto-assign-skeleton-box" style="width: 50%; height: 22px;"></div>
+            <div class="auto-assign-skeleton-box" style="width: 100%; height: 50px;"></div>
+            <div class="auto-assign-skeleton-box" style="width: 80%; height: 24px;"></div>
+            <div class="auto-assign-skeleton-box" style="width: 95%; height: 45px;"></div>
+            <p style="text-align: center; color: var(--navy); font-weight: 700; margin-top: 8px;">Evaluating specialization and staff workloads...</p>
+        </div>
+    `;
+
+    modal.querySelector('#closeAutoAssignModal').onclick = closeModal;
+    modal.querySelector('#autoAssignOverlay').onclick = closeModal;
+
+    let previewData;
+    try {
+        previewData = await apiRequest('/assignments/auto/preview', {
+            method: 'POST',
+            body: { ticketIds }
+        });
+    } catch (err) {
+        modalBody.innerHTML = `
+            <div class="auto-assign-header">
+                <h3>Auto-Assign Preview Failed</h3>
+                <button type="button" class="modal-close" id="closeAutoAssignModal" aria-label="Close">✕</button>
+            </div>
+            <div style="padding: 24px; text-align: center;">
+                <p style="color: var(--red); font-weight: 700; margin-bottom: 14px;">${escapeHtml(err.message)}</p>
+                <button type="button" class="btn btn-secondary" id="errCloseBtn">Close</button>
+            </div>
+        `;
+        modal.querySelector('#closeAutoAssignModal').onclick = closeModal;
+        modal.querySelector('#errCloseBtn').onclick = closeModal;
+        return;
+    }
+
+    const tickets = previewData.tickets || [];
+    if (tickets.length === 0) {
+        modalBody.innerHTML = `
+            <div class="auto-assign-header">
+                <h3>No Tickets Found</h3>
+                <button type="button" class="modal-close" id="closeAutoAssignModal" aria-label="Close">✕</button>
+            </div>
+            <div style="padding: 24px; text-align: center;">
+                <p style="color: var(--grey); margin-bottom: 14px;">The selected ticket(s) could not be located.</p>
+                <button type="button" class="btn btn-secondary" id="emptyCloseBtn">Close</button>
+            </div>
+        `;
+        modal.querySelector('#closeAutoAssignModal').onclick = closeModal;
+        modal.querySelector('#emptyCloseBtn').onclick = closeModal;
+        return;
+    }
+
+    let state = tickets.map(t => ({
+        ticketId: t.ticketId,
+        category: t.category,
+        categoryDisplay: t.categoryDisplay,
+        priority: t.priority,
+        priorityLevel: t.priorityLevel,
+        location: t.location,
+        description: t.description,
+        isAlreadyAssigned: t.isAlreadyAssigned,
+        currentStaffName: t.currentStaffName,
+        isOverdue: t.isOverdue,
+        eligibleStaff: t.eligibleStaff || [],
+        selectedStaffId: t.proposedStaff ? t.proposedStaff.staffId : null,
+        selectedStaffName: t.proposedStaff ? t.proposedStaff.name : '',
+        selectedStaffSpec: t.proposedStaff ? (t.proposedStaff.specializationDisplay || t.proposedStaff.specialization) : '',
+        currentOpenTickets: t.proposedStaff ? t.proposedStaff.currentOpenTickets : 0,
+        reason: t.proposedStaff ? t.proposedStaff.reason : (t.warnings && t.warnings[0] ? t.warnings[0] : 'No staff available'),
+        warnings: t.warnings || [],
+        isExcluded: !t.proposedStaff,
+        conflictError: null
+    }));
+
+    const render = () => {
+        if (state.length === 1) {
+            renderSingleView();
+        } else {
+            renderGroupView();
+        }
+    };
+
+    const renderSingleView = () => {
+        const item = state[0];
+        const pInfo = getPriorityInfo(item.priority);
+        const pClass = pInfo.badgeClass || `priority-${String(item.priority).toLowerCase()}`;
+        const pLabel = pInfo.label || item.priority;
+        const isReassign = item.isAlreadyAssigned;
+
+        modalBody.innerHTML = `
+            <div class="auto-assign-header">
+                <h3>Confirm assignment</h3>
+                <button type="button" class="modal-close" id="closeAutoAssignModal" aria-label="Close">✕</button>
+            </div>
+            <div class="auto-assign-scroll-body">
+                ${isReassign ? `
+                    <div class="auto-assign-warnings">
+                        <strong>Notice: Reassigning Ticket</strong>
+                        This ticket is currently assigned to <strong>${escapeHtml(item.currentStaffName || 'a staff member')}</strong>. Confirming will reassign it.
+                    </div>
+                ` : ''}
+
+                ${item.conflictError ? `
+                    <div class="auto-assign-warnings" style="background:#FEF2F2; border-color:var(--red); color:var(--red);">
+                        <strong>Assignment Conflict</strong>
+                        ${escapeHtml(item.conflictError)}
+                    </div>
+                ` : ''}
+
+                <div style="border: 2px solid var(--border-color); padding: 12px 14px; background: var(--bg-light); margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span class="auto-assign-ticket-id" style="font-size:0.95rem;">${escapeHtml(item.ticketId)}</span>
+                        <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
+                    </div>
+                    <div style="font-size:0.84rem; font-weight:700; color:var(--navy); margin-bottom:4px;">
+                        ${escapeHtml(item.categoryDisplay || item.category)} · <span>${escapeHtml(item.location)}</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${escapeHtml(item.description)}
+                    </div>
+                </div>
+
+                <div style="border: 2px solid var(--border-color); padding: 14px; background: var(--white);">
+                    <div style="font-size:0.75rem; text-transform:uppercase; font-weight:800; color:var(--grey); margin-bottom:6px; letter-spacing:0.5px;">Proposed Staff</div>
+                    ${item.selectedStaffId ? `
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <strong style="font-size:1rem; color:var(--navy);">${escapeHtml(item.selectedStaffName)}</strong>
+                                <div style="font-size:0.82rem; color:var(--grey); margin-top:2px;">
+                                    ${escapeHtml(item.selectedStaffSpec)} · <strong>${item.currentOpenTickets} open tickets</strong>
+                                </div>
+                                <div style="font-size:0.82rem; color:var(--teal); font-weight:700; margin-top:4px;">
+                                    ✓ ${escapeHtml(item.reason)}
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" id="singleChangeStaffBtn" style="font-size:0.75rem;">Change staff</button>
+                        </div>
+                    ` : `
+                        <div style="color:var(--red); font-weight:700; font-size:0.85rem;">
+                            No eligible staff available for this ticket category.
+                        </div>
+                    `}
+
+                    <div id="singleChangeDropdownWrap" style="display:none; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-color);">
+                        <label for="singleSelectStaff" style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Select eligible staff override:</label>
+                        <select class="form-control" id="singleSelectStaff" style="font-size:0.82rem; padding:4px 8px;">
+                            ${item.eligibleStaff.map(s => `
+                                <option value="${s.staffId}" ${s.staffId === item.selectedStaffId ? 'selected' : ''}>
+                                    ${escapeHtml(s.name)} (${escapeHtml(s.specializationDisplay || s.specialization)}) - ${s.activeComplaints} open
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="auto-assign-footer">
+                <div></div>
+                <div class="auto-assign-footer-actions">
+                    <button type="button" class="btn btn-secondary" id="singleCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="singleConfirmBtn" ${!item.selectedStaffId ? 'disabled' : ''}>
+                        ${isReassign ? 'Reassign' : 'Assign'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#closeAutoAssignModal').onclick = closeModal;
+        modal.querySelector('#autoAssignOverlay').onclick = closeModal;
+        modal.querySelector('#singleCancelBtn').onclick = closeModal;
+
+        const changeBtn = modal.querySelector('#singleChangeStaffBtn');
+        const changeWrap = modal.querySelector('#singleChangeDropdownWrap');
+        const selectStaff = modal.querySelector('#singleSelectStaff');
+
+        if (changeBtn && changeWrap) {
+            changeBtn.onclick = () => {
+                changeWrap.style.display = changeWrap.style.display === 'none' ? 'block' : 'none';
+            };
+        }
+
+        if (selectStaff) {
+            selectStaff.onchange = () => {
+                const sid = parseInt(selectStaff.value, 10);
+                const matched = item.eligibleStaff.find(s => s.staffId === sid);
+                if (matched) {
+                    item.selectedStaffId = matched.staffId;
+                    item.selectedStaffName = matched.name;
+                    item.selectedStaffSpec = matched.specializationDisplay || matched.specialization;
+                    item.currentOpenTickets = matched.activeComplaints;
+                    item.reason = `${matched.specializationDisplay || matched.specialization} specialist (manual override)`;
+                    render();
+                }
+            };
+        }
+
+        const confirmBtn = modal.querySelector('#singleConfirmBtn');
+        confirmBtn.onclick = () => handleConfirm();
+        confirmBtn.focus();
+
+        setupKeyNav([confirmBtn, modal.querySelector('#singleCancelBtn')]);
+    };
+
+    const renderGroupView = () => {
+        const totalCount = state.length;
+        const activeCount = state.filter(t => !t.isExcluded && t.selectedStaffId).length;
+        const excludedCount = totalCount - activeCount;
+        const allAlreadyAssigned = state.every(t => t.isAlreadyAssigned);
+
+        const priorityCounts = { URGENT: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+        let overdueCount = 0;
+        const involvedStaff = new Set();
+
+        state.forEach(t => {
+            if (!t.isExcluded && t.selectedStaffId) {
+                const prio = (t.priority || 'LOW').toUpperCase();
+                priorityCounts[prio] = (priorityCounts[prio] || 0) + 1;
+                if (t.isOverdue) overdueCount++;
+                involvedStaff.add(t.selectedStaffId);
+            }
+        });
+
+        const staffGroups = new Map();
+        const unassignedTickets = [];
+
+        state.forEach(t => {
+            if (t.selectedStaffId) {
+                if (!staffGroups.has(t.selectedStaffId)) {
+                    staffGroups.set(t.selectedStaffId, {
+                        staffId: t.selectedStaffId,
+                        staffName: t.selectedStaffName,
+                        specialization: t.selectedStaffSpec,
+                        initialOpen: t.currentOpenTickets || 0,
+                        tickets: []
+                    });
+                }
+                staffGroups.get(t.selectedStaffId).tickets.push(t);
+            } else {
+                unassignedTickets.push(t);
+            }
+        });
+
+        const noStaffCount = unassignedTickets.length;
+        const capExceededStaff = Array.from(staffGroups.values()).filter(g => {
+            const added = g.tickets.filter(t => !t.isExcluded).length;
+            return (g.initialOpen + added) > 10;
+        });
+        const reassignCount = state.filter(t => !t.isExcluded && t.isAlreadyAssigned).length;
+        const hasWarnings = noStaffCount > 0 || capExceededStaff.length > 0 || reassignCount > 0;
+
+        let warningsHtml = '';
+        if (hasWarnings) {
+            warningsHtml = `
+                <div class="auto-assign-warnings">
+                    <strong>⚠️ Batch Warnings</strong>
+                    <ul style="margin: 0; padding-left: 18px; line-height: 1.4;">
+                        ${noStaffCount > 0 ? `
+                            <li><span class="auto-assign-warning-link" data-warn="unassigned">${noStaffCount} ticket(s) have no eligible staff</span> (automatically excluded from batch).</li>
+                        ` : ''}
+                        ${capExceededStaff.map(g => `
+                            <li><span class="auto-assign-warning-link" data-warn="staff-${g.staffId}">${escapeHtml(g.staffName)} would exceed workload cap</span> (${g.initialOpen} open + ${g.tickets.filter(t => !t.isExcluded).length} assigned = ${g.initialOpen + g.tickets.filter(t => !t.isExcluded).length} total).</li>
+                        `).join('')}
+                        ${reassignCount > 0 ? `
+                            <li><span class="auto-assign-warning-link" data-warn="reassigned">${reassignCount} ticket(s) are already assigned</span> and will be reassigned.</li>
+                        ` : ''}
+                    </ul>
+                </div>
+            `;
+        }
+
+        modalBody.innerHTML = `
+            <div class="auto-assign-header">
+                <h3>${allAlreadyAssigned ? `Reassign ${totalCount} tickets` : `Confirm ${totalCount} assignments`}</h3>
+                <button type="button" class="modal-close" id="closeAutoAssignModal" aria-label="Close">✕</button>
+            </div>
+            <div class="auto-assign-summary-strip">
+                <span class="auto-assign-summary-stat"><strong>${totalCount}</strong> total</span>
+                <span class="auto-assign-summary-stat">·</span>
+                <span class="auto-assign-summary-stat"><strong>${involvedStaff.size}</strong> staff</span>
+                <span class="auto-assign-summary-stat">·</span>
+                <span class="auto-assign-summary-stat">
+                    ${priorityCounts.URGENT > 0 ? `<span style="color:var(--red); font-weight:700;">U:${priorityCounts.URGENT}</span> ` : ''}
+                    H:${priorityCounts.HIGH} M:${priorityCounts.MEDIUM} L:${priorityCounts.LOW}
+                </span>
+                <span class="auto-assign-summary-stat">·</span>
+                <span class="auto-assign-summary-stat ${overdueCount > 0 ? 'auto-assign-summary-overdue' : ''}">
+                    ${overdueCount > 0 ? `⚠️ ${overdueCount} overdue` : '0 overdue'}
+                </span>
+            </div>
+            <div class="auto-assign-scroll-body" id="autoAssignScrollList">
+                ${warningsHtml}
+
+                ${Array.from(staffGroups.values()).map(g => {
+                    const activeForStaff = g.tickets.filter(t => !t.isExcluded).length;
+                    const projOpen = g.initialOpen + activeForStaff;
+                    return `
+                        <div class="auto-assign-staff-group" id="staff-group-${g.staffId}">
+                            <div class="auto-assign-staff-header">
+                                <div>
+                                    <strong>👤 ${escapeHtml(g.staffName)}</strong> <span style="font-size:0.75rem; color:var(--grey);">(${escapeHtml(g.specialization)})</span>
+                                </div>
+                                <div class="auto-assign-staff-change">
+                                    ${g.initialOpen} open → <strong>${projOpen} open</strong> (${activeForStaff} ticket${activeForStaff === 1 ? '' : 's'})
+                                </div>
+                            </div>
+                            <div>
+                                ${g.tickets.map(t => renderRowHtml(t)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+
+                ${unassignedTickets.length > 0 ? `
+                    <div class="auto-assign-staff-group" style="border-color:var(--amber);">
+                        <div class="auto-assign-staff-header" style="background:#FFFBEB;">
+                            <strong style="color:#7A4F01;">⚠️ No Eligible Staff Found (${unassignedTickets.length})</strong>
+                            <span class="auto-assign-staff-change" style="color:#7A4F01;">Excluded automatically</span>
+                        </div>
+                        <div>
+                            ${unassignedTickets.map(t => renderRowHtml(t)).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="auto-assign-footer">
+                <div class="auto-assign-footer-counts">
+                    <span>${activeCount} will be assigned</span>, <span style="color:var(--grey);">${excludedCount} excluded</span>
+                </div>
+                <div class="auto-assign-footer-actions">
+                    <button type="button" class="btn btn-secondary" id="groupCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="groupConfirmBtn" ${activeCount === 0 ? 'disabled' : ''}>
+                        ${allAlreadyAssigned ? `Reassign all ${activeCount}` : `Accept all ${activeCount}`}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#closeAutoAssignModal').onclick = closeModal;
+        modal.querySelector('#autoAssignOverlay').onclick = closeModal;
+        modal.querySelector('#groupCancelBtn').onclick = closeModal;
+
+        modal.querySelectorAll('.auto-assign-warning-link').forEach(link => {
+            link.onclick = () => {
+                const target = link.getAttribute('data-warn');
+                const scrollEl = modal.querySelector('#autoAssignScrollList');
+                if (target.startsWith('staff-')) {
+                    const gEl = modal.querySelector(`#${target}`);
+                    if (gEl) gEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else if (target === 'reassigned') {
+                    const row = modal.querySelector('.auto-assign-ticket-row[data-reassign="true"]');
+                    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            };
+        });
+
+        attachRowEvents();
+
+        const confirmBtn = modal.querySelector('#groupConfirmBtn');
+        confirmBtn.onclick = () => handleConfirm();
+
+        const rows = Array.from(modal.querySelectorAll('.auto-assign-ticket-row'));
+        if (rows.length > 0) {
+            rows[0].focus();
+        }
+        setupKeyNav(rows);
+    };
+
+    const renderRowHtml = (t) => {
+        const pInfo = getPriorityInfo(t.priority);
+        const pClass = pInfo.badgeClass || `priority-${String(t.priority).toLowerCase()}`;
+        const pLabel = pInfo.label || t.priority;
+
+        return `
+            <div class="auto-assign-ticket-row ${t.isExcluded ? 'is-excluded' : ''} ${t.conflictError ? 'has-conflict' : ''}"
+                 tabindex="0"
+                 data-ticket-id="${t.ticketId}"
+                 data-reassign="${t.isAlreadyAssigned}">
+                <div class="auto-assign-row-main">
+                    <div class="auto-assign-row-top">
+                        <span class="auto-assign-ticket-id">${escapeHtml(t.ticketId)}</span>
+                        <span class="priority-badge ${pClass}" style="font-size:0.72rem; padding:1px 5px;">${escapeHtml(pLabel)}</span>
+                        <span style="font-size:0.75rem; color:var(--grey);">${escapeHtml(t.categoryDisplay || t.category)}</span>
+                        ${t.isAlreadyAssigned ? `<span class="badge badge-amber" style="font-size:0.7rem; padding:1px 4px;">Reassign</span>` : ''}
+                        ${t.isOverdue ? `<span class="badge badge-overdue" style="font-size:0.7rem; padding:1px 4px;">Overdue</span>` : ''}
+                    </div>
+                    <div class="auto-assign-row-desc" title="${escapeHtml(t.description)}">
+                        ${escapeHtml(t.description)}
+                    </div>
+                    <div class="auto-assign-row-meta">
+                        📍 ${escapeHtml(t.location)} · Reason: <span style="color:var(--teal); font-weight:600;">${escapeHtml(t.reason)}</span>
+                    </div>
+                    ${t.conflictError ? `
+                        <div class="auto-assign-conflict-msg">⚠️ Conflict: ${escapeHtml(t.conflictError)}</div>
+                    ` : ''}
+                </div>
+                <div class="auto-assign-row-actions">
+                    <select class="auto-assign-change-select" data-ticket-id="${t.ticketId}" aria-label="Change assigned staff">
+                        ${t.eligibleStaff.map(s => `
+                            <option value="${s.staffId}" ${s.staffId === t.selectedStaffId ? 'selected' : ''}>
+                                ${escapeHtml(s.name)} (${s.activeComplaints})
+                            </option>
+                        `).join('')}
+                    </select>
+                    ${t.isExcluded ? `
+                        <button type="button" class="auto-assign-undo-btn" data-ticket-id="${t.ticketId}" title="Include in batch">Undo</button>
+                    ` : `
+                        <button type="button" class="auto-assign-remove-btn" data-ticket-id="${t.ticketId}" title="Exclude ticket from batch" aria-label="Exclude">✕</button>
+                    `}
+                </div>
+            </div>
+        `;
+    };
+
+    const attachRowEvents = () => {
+        modal.querySelectorAll('.auto-assign-remove-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const tid = btn.getAttribute('data-ticket-id');
+                const match = state.find(t => t.ticketId === tid);
+                if (match) {
+                    match.isExcluded = true;
+                    render();
+                }
+            };
+        });
+
+        modal.querySelectorAll('.auto-assign-undo-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const tid = btn.getAttribute('data-ticket-id');
+                const match = state.find(t => t.ticketId === tid);
+                if (match) {
+                    match.isExcluded = false;
+                    render();
+                }
+            };
+        });
+
+        modal.querySelectorAll('.auto-assign-change-select').forEach(sel => {
+            sel.onchange = (e) => {
+                e.stopPropagation();
+                const tid = sel.getAttribute('data-ticket-id');
+                const newStaffId = parseInt(sel.value, 10);
+                const match = state.find(t => t.ticketId === tid);
+                if (match) {
+                    const st = match.eligibleStaff.find(s => s.staffId === newStaffId);
+                    if (st) {
+                        match.selectedStaffId = st.staffId;
+                        match.selectedStaffName = st.name;
+                        match.selectedStaffSpec = st.specializationDisplay || st.specialization;
+                        match.currentOpenTickets = st.activeComplaints;
+                        match.reason = `${st.specializationDisplay || st.specialization} specialist (manual override)`;
+                        render();
+                    }
+                }
+            };
+        });
+    };
+
+    const setupKeyNav = (focusableItems) => {
+        if (keyHandler) {
+            document.removeEventListener('keydown', keyHandler);
+        }
+
+        keyHandler = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModal();
+                return;
+            }
+
+            const rows = Array.from(modal.querySelectorAll('.auto-assign-ticket-row'));
+            if (rows.length === 0) return;
+
+            const activeIndex = rows.findIndex(r => r === document.activeElement || r.contains(document.activeElement));
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = (activeIndex + 1) % rows.length;
+                rows[next].focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = (activeIndex - 1 + rows.length) % rows.length;
+                rows[prev].focus();
+            } else if (e.key === ' ' && activeIndex >= 0 && !e.target.matches('select, button, input')) {
+                e.preventDefault();
+                const row = rows[activeIndex];
+                const tid = row.getAttribute('data-ticket-id');
+                const match = state.find(t => t.ticketId === tid);
+                if (match) {
+                    match.isExcluded = !match.isExcluded;
+                    render();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', keyHandler);
+    };
+
+    const handleConfirm = async () => {
+        const activeList = state.filter(t => !t.isExcluded && t.selectedStaffId);
+        if (activeList.length === 0) return;
+
+        inFlight = true;
+        const confirmBtn = modal.querySelector('#groupConfirmBtn') || modal.querySelector('#singleConfirmBtn');
+        const cancelBtn = modal.querySelector('#groupCancelBtn') || modal.querySelector('#singleCancelBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = `Assigning ${activeList.length} ticket${activeList.length === 1 ? '' : 's'}...`;
+        }
+        if (cancelBtn) cancelBtn.disabled = true;
+
+        try {
+            const assignmentsPayload = activeList.map(t => ({
+                ticketId: t.ticketId,
+                staffId: t.selectedStaffId
+            }));
+
+            const res = await apiRequest('/assignments/auto/confirm', {
+                method: 'POST',
+                body: { assignments: assignmentsPayload }
+            });
+
+            showToast(res.message || `${activeList.length} ticket(s) assigned successfully`, 'success');
+            inFlight = false;
+            closeModal();
+            if (typeof onRefresh === 'function') {
+                onRefresh();
+            }
+        } catch (err) {
+            inFlight = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = state.length === 1 ? 'Assign' : `Retry assignment (${activeList.length})`;
+            }
+            if (cancelBtn) cancelBtn.disabled = false;
+
+            let conflictList = [];
+            try {
+                if (err.data && err.data.conflicts) conflictList = err.data.conflicts;
+            } catch (_) {}
+
+            if (conflictList.length > 0) {
+                conflictList.forEach(cf => {
+                    const match = state.find(t => t.ticketId === cf.ticketId);
+                    if (match) match.conflictError = cf.reason;
+                });
+                showToast('Stale data or assignment conflicts detected. Review marked rows.', 'error');
+                render();
+            } else {
+                showToast('Assignment error: ' + err.message, 'error');
+            }
+        }
+    };
+
+    render();
+}
+
 function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext = 'triage') {
     if (!rawComplaints || rawComplaints.length === 0) {
         wrapper.innerHTML = `
@@ -694,37 +1614,35 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
             <div class="bulk-action-bar" id="adminBulkBar">
                 <span class="bulk-count"><strong>${selectedComplaintIds.size}</strong> complaint(s) selected</span>
                 <div class="bulk-buttons">
-                    <button class="btn btn-primary btn-sm" id="bulkAutoAssignBtn" type="button" title="Auto-assign selected complaints based on category and staff availability">🤖 Auto-Assign Selected</button>
-                    <button class="btn btn-outline btn-sm" id="bulkManualAssignBtn" type="button" style="color:var(--white); border-color:var(--white);">Assign Staff...</button>
+                    <button class="btn btn-primary btn-sm" id="bulkAutoAssignBtn" type="button" title="Auto-assign selected complaints based on category and staff availability">Auto-Assign Selected</button>
+                    <button class="btn btn-outline btn-sm bulk-action-btn" id="bulkManualAssignBtn" type="button">Assign Staff...</button>
                     <select class="bulk-priority-select" id="bulkPrioritySelect" aria-label="Set priority for selected complaints">
                         <option value="">Set Priority...</option>
                         <option value="1">High Priority</option>
                         <option value="2">Medium Priority</option>
                         <option value="3">Low Priority</option>
                     </select>
-                    <button class="btn btn-text btn-sm" id="bulkClearBtn" type="button" style="color:#CBD5E1; text-decoration:underline;">Deselect All</button>
+                    <button class="bulk-deselect-btn" id="bulkClearBtn" type="button">Deselect All</button>
                 </div>
             </div>
         `;
     }
 
     html += `
-        <div class="table-responsive">
+        <div class="table-responsive complaints-table-wrapper">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th style="width: 36px; text-align: center;">
+                        <th style="width: 4%; text-align: center;">
                             <input type="checkbox" id="adminSelectAllCb" class="table-checkbox" ${isAllSelected ? 'checked' : ''} aria-label="Select all complaints on current page">
                         </th>
-                        <th style="white-space: nowrap;">ID</th>
-                        <th>Priority</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Location & Student</th>
-                        <th>Status</th>
-                        <th>Assigned Staff</th>
-                        <th>Due Date</th>
-                        <th style="text-align: right;">Actions</th>
+                        <th style="width: 26%;">ID & Description</th>
+                        <th style="width: 12%;">Priority & Category</th>
+                        <th style="width: 16%;">Location & Student</th>
+                        <th style="width: 12%;">Status</th>
+                        <th style="width: 14%;">Assigned Staff</th>
+                        <th style="width: 9%;">Due Date</th>
+                        <th style="width: 7%; text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -763,32 +1681,43 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
             staffDisplay = `<strong>${escapeHtml(name)}</strong>${spec ? ` <span style="font-size:0.8rem; color:var(--grey);">(${escapeHtml(spec)})</span>` : ''}`;
         }
 
-        // Action buttons
+        // Action buttons with compact sizing and secondary overflow menu
         let actionsHtml = '';
         if (c.status === 'NEW' && (!c.assignedStaffId && !c.staffId)) {
             actionsHtml = `
-                <div style="display:flex; gap:6px; justify-content:flex-end;">
-                    <button class="btn btn-primary btn-sm btn-assign" data-id="${c.complaintId}" data-cat="${c.category}">Assign</button>
-                    <button class="btn btn-outline btn-sm btn-auto" data-id="${c.complaintId}" title="Automatically assign to the best available staff based on specialization and workload">Auto-assign</button>
+                <div class="triage-actions-wrap">
+                    <button class="btn btn-primary btn-sm btn-assign btn-compact" data-id="${c.complaintId}" data-cat="${c.category}">Assign</button>
+                    <div class="action-overflow-wrap">
+                        <button type="button" class="btn btn-outline btn-sm btn-overflow-trigger" data-id="${c.complaintId}" title="More actions" aria-label="More actions">⋮</button>
+                        <div class="action-overflow-menu" id="overflow-${c.complaintId}" style="display:none;">
+                            <button type="button" class="action-overflow-item btn-auto" data-id="${c.complaintId}">Auto-assign</button>
+                        </div>
+                    </div>
                 </div>
             `;
         } else if (c.status === 'REOPENED') {
             actionsHtml = `
-                <div style="display:flex; gap:6px; justify-content:flex-end;">
-                    <button class="btn btn-amber btn-sm btn-assign" data-id="${c.complaintId}" data-cat="${c.category}">Assign</button>
+                <div class="triage-actions-wrap">
+                    <button class="btn btn-amber btn-sm btn-assign btn-compact" data-id="${c.complaintId}" data-cat="${c.category}">Assign</button>
+                    <div class="action-overflow-wrap">
+                        <button type="button" class="btn btn-outline btn-sm btn-overflow-trigger" data-id="${c.complaintId}" title="More actions" aria-label="More actions">⋮</button>
+                        <div class="action-overflow-menu" id="overflow-${c.complaintId}" style="display:none;">
+                            <button type="button" class="action-overflow-item btn-auto" data-id="${c.complaintId}">Auto-assign</button>
+                        </div>
+                    </div>
                 </div>
             `;
         } else if (c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS') {
             actionsHtml = `
-                <div style="display:flex; gap:6px; justify-content:flex-end;">
-                    <button class="btn btn-link btn-sm btn-assign" data-id="${c.complaintId}" data-cat="${c.category}" style="text-decoration:underline; font-size:0.85rem; padding: 2px 4px;">Reassign</button>
+                <div class="triage-actions-wrap">
+                    <button class="btn btn-outline btn-sm btn-assign btn-compact" data-id="${c.complaintId}" data-cat="${c.category}">Reassign</button>
                 </div>
             `;
         } else {
-            actionsHtml = `<span style="color:var(--grey); font-size:0.85rem;">—</span>`;
+            actionsHtml = `<div class="triage-actions-wrap"><span style="color:var(--grey); font-size:0.85rem;">—</span></div>`;
         }
 
-        // Status badge representation
+        // Status badge representation (No duplicate OVERDUE badge; due date & red row accent already indicate this)
         let statusBadgeHtml = '';
         if (c.status === 'NEW') {
             statusBadgeHtml = `<span class="status-badge status-NEW"><span class="status-dot"></span> New</span>`;
@@ -801,22 +1730,20 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
                 <td style="text-align: center;" onclick="event.stopPropagation();">
                     <input type="checkbox" class="complaint-select-cb" data-id="${c.complaintId}" ${isSelected ? 'checked' : ''} aria-label="Select complaint ${c.complaintId}">
                 </td>
-                <td data-label="ID" style="white-space: nowrap;">
-                    <a href="#" class="complaint-link font-mono" data-id="${c.complaintId}">${escapeHtml(c.complaintId)}</a>
+                <td data-label="ID & Description">
+                    <div class="merged-id-desc">
+                        <a href="#" class="complaint-link font-mono" data-id="${c.complaintId}">${escapeHtml(c.complaintId)}</a>
+                        <div class="desc-line-truncate" title="${escapeHtml(c.description)}">${escapeHtml(c.description)}</div>
+                    </div>
                 </td>
-                <td data-label="Priority">
-                    <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
-                </td>
-                <td data-label="Category">
-                    <span class="category-cell-wrap">
-                        ${getCategoryIcon(c.category)}
-                        <span>${escapeHtml(c.categoryDisplay || c.category)}</span>
-                    </span>
-                    ${isDuplicate ? `<span class="badge badge-duplicate" title="Potential duplicate of ${escapeHtml(otherDupId)} (same room & category)">⚠️ Dup</span>` : ''}
-                </td>
-                <td data-label="Description">
-                    <div class="table-desc-cell" title="${escapeHtml(c.description)}">
-                        ${escapeHtml(c.description)}
+                <td data-label="Priority & Category">
+                    <div class="merged-priority-cat">
+                        <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
+                        <span class="category-cell-wrap">
+                            ${getCategoryIcon(c.category)}
+                            <span>${escapeHtml(c.categoryDisplay || c.category)}</span>
+                        </span>
+                        ${isDuplicate ? `<span class="badge badge-duplicate" title="Potential duplicate of ${escapeHtml(otherDupId)} (same room & category)">⚠️ Dup</span>` : ''}
                     </div>
                 </td>
                 <td data-label="Location & Student">
@@ -825,11 +1752,10 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
                         ${studentName ? `<span class="meta-dot">·</span><span class="student-val">${studentName}</span>` : ''}
                     </div>
                 </td>
-                <td data-label="Status" style="white-space: nowrap;">
+                <td data-label="Status">
                     ${statusBadgeHtml}
-                    ${isOverdue ? '<span class="badge badge-overdue" style="margin-left:4px;">OVERDUE</span>' : ''}
                 </td>
-                <td data-label="Assigned Staff">${staffDisplay}</td>
+                <td data-label="Assigned Staff" class="staff-cell">${staffDisplay}</td>
                 <td data-label="Due Date">
                     <span title="${formatExactDate(c.dueBy)}">${formatDueStatus(c.dueBy, c.status)}</span>
                 </td>
@@ -849,7 +1775,7 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
     // Attach row click listeners for detail drawer
     wrapper.querySelectorAll('.complaint-row').forEach(row => {
         row.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-assign') || e.target.closest('.btn-auto') || e.target.closest('input[type="checkbox"]')) return;
+            if (e.target.closest('.btn-assign') || e.target.closest('.btn-auto') || e.target.closest('.action-overflow-wrap') || e.target.closest('input[type="checkbox"]')) return;
             e.preventDefault();
             const id = row.getAttribute('data-id');
             openAdminComplaintDrawer(id, onRefresh);
@@ -887,21 +1813,13 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
     // Bulk action handlers
     const bulkAutoBtn = wrapper.querySelector('#bulkAutoAssignBtn');
     if (bulkAutoBtn) {
-        bulkAutoBtn.onclick = async () => {
+        bulkAutoBtn.onclick = () => {
             const ids = Array.from(selectedComplaintIds);
             if (ids.length === 0) return;
-            bulkAutoBtn.disabled = true;
-            bulkAutoBtn.textContent = 'Auto-assigning...';
-            try {
-                await Promise.allSettled(ids.map(id => apiRequest(`/admin/complaints/${id}/auto-assign`, { method: 'POST' })));
-                showToast(`Auto-assigned ${ids.length} complaint(s) successfully!`, 'success');
+            openAutoAssignConfirmationModal(ids, () => {
                 selectedComplaintIds.clear();
                 if (typeof onRefresh === 'function') onRefresh();
-            } catch (err) {
-                showToast('Bulk auto-assign error: ' + err.message, 'error');
-                bulkAutoBtn.disabled = false;
-                bulkAutoBtn.textContent = '🤖 Auto-Assign Selected';
-            }
+            });
         };
     }
 
@@ -947,6 +1865,32 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
         };
     }
 
+    // Overflow menu toggle listeners
+    wrapper.querySelectorAll('.btn-overflow-trigger').forEach(trigger => {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = trigger.getAttribute('data-id');
+            const menu = wrapper.querySelector(`#overflow-${id}`);
+            wrapper.querySelectorAll('.action-overflow-menu').forEach(m => {
+                if (m !== menu) m.style.display = 'none';
+            });
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    });
+
+    if (!window._hcmsOverflowClickBound) {
+        window._hcmsOverflowClickBound = true;
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.action-overflow-wrap')) {
+                document.querySelectorAll('.action-overflow-menu').forEach(m => {
+                    m.style.display = 'none';
+                });
+            }
+        });
+    }
+
     // Individual action buttons
     wrapper.querySelectorAll('.btn-assign').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -958,16 +1902,13 @@ function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext =
     });
 
     wrapper.querySelectorAll('.btn-auto').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.getAttribute('data-id');
-            try {
-                await apiRequest(`/admin/complaints/${id}/auto-assign`, { method: 'POST' });
-                showToast(`Complaint ${id} auto-assigned successfully!`, 'success');
-                if (typeof onRefresh === 'function') onRefresh();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+            // Close any open overflow menu
+            const menu = wrapper.querySelector(`#overflow-${id}`);
+            if (menu) menu.style.display = 'none';
+            openAutoAssignConfirmationModal([id], onRefresh);
         });
     });
 }
@@ -1305,15 +2246,11 @@ function renderAdminDetailDrawer(c, history, comments, staffList, onRefresh) {
 
     const autoAssignBtn = document.getElementById('drawerAutoAssignBtn');
     if (autoAssignBtn) {
-        autoAssignBtn.onclick = async () => {
-            try {
-                await apiRequest(`/admin/complaints/${c.complaintId}/auto-assign`, { method: 'POST' });
-                showToast(`Complaint ${c.complaintId} auto-assigned successfully!`, 'success');
+        autoAssignBtn.onclick = () => {
+            openAutoAssignConfirmationModal([c.complaintId], () => {
                 openAdminComplaintDrawer(c.complaintId, onRefresh);
                 if (typeof onRefresh === 'function') onRefresh();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+            });
         };
     }
 
@@ -1594,15 +2531,11 @@ export async function openAssignModal(complaintId, category, onRefresh) {
     modal.querySelector('.modal-overlay').onclick = () => { modal.style.display = 'none'; };
 
     if (autoBtn) {
-        autoBtn.onclick = async () => {
-            try {
-                await apiRequest(`/admin/complaints/${complaintId}/auto-assign`, { method: 'POST' });
-                showToast('Auto-assigned successfully!', 'success');
-                modal.style.display = 'none';
+        autoBtn.onclick = () => {
+            modal.style.display = 'none';
+            openAutoAssignConfirmationModal([complaintId], () => {
                 triggerRefresh();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+            });
         };
     }
 

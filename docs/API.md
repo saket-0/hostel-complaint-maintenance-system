@@ -384,6 +384,20 @@ When an error occurs, the server responds with a consistent JSON body and no lea
 - **Auth**: `ADMIN`
 - **Logic**: Evaluates available staff matching the complaint's specialization category, then selects the staff member with the least active workload.
 
+### 4.4.1 Auto-Assign Batch Preview (Read-Only)
+- **Method**: `POST`
+- **Path**: `/api/assignments/auto/preview` (also `/api/v1/assignments/auto/preview`, `/api/v1/admin/assignments/auto/preview`)
+- **Auth**: `ADMIN`
+- **Request Body**: `{ "ticketIds": ["HCM-2026-000001", ...] }`
+- **Response** (`200 OK`): Proposed staff, workload delta, reason, eligible staff, warnings, summary strip counts. No writes.
+
+### 4.4.2 Auto-Assign Batch Confirmation (Atomic Transaction)
+- **Method**: `POST`
+- **Path**: `/api/assignments/auto/confirm` (also `/api/v1/assignments/auto/confirm`, `/api/v1/admin/assignments/auto/confirm`)
+- **Auth**: `ADMIN`
+- **Request Body**: `{ "assignments": [{ "ticketId": "HCM-2026-000001", "staffId": 201 }, ...] }`
+- **Response** (`200 OK` or `409 Conflict`): Saves all assignments, audit history, and notifications in one atomic transaction; returns conflicts if data went stale.
+
 ### 4.5 List All Maintenance Staff
 - **Method**: `GET`
 - **Path**: `/api/v1/admin/staff`

@@ -274,6 +274,93 @@ public class AdminController {
                 "status", complaint.getStatus().name()));
     }
 
+    /** POST /api/assignments/auto/preview or /api/v1/admin/assignments/auto/preview */
+    public void previewAutoAssign(Context ctx) {
+        List<String> complaintIds = new ArrayList<>();
+        try {
+            String bodyStr = ctx.body() != null ? ctx.body().trim() : "";
+            if (bodyStr.startsWith("[")) {
+                List<?> rawList = ctx.bodyAsClass(List.class);
+                for (Object item : rawList) {
+                    if (item != null) complaintIds.add(item.toString());
+                }
+            } else if (!bodyStr.isEmpty()) {
+                Map<?, ?> map = ctx.bodyAsClass(Map.class);
+                Object idsObj = map.get("complaintIds");
+                if (idsObj == null) idsObj = map.get("ticketIds");
+                if (idsObj == null) idsObj = map.get("ids");
+                if (idsObj instanceof List<?> list) {
+                    for (Object item : list) {
+                        if (item != null) complaintIds.add(item.toString());
+                    }
+                } else if (idsObj != null) {
+                    complaintIds.add(idsObj.toString());
+                }
+            }
+        } catch (Exception e) {
+            ctx.status(400).json(Map.of("error", "Invalid JSON payload for preview: " + e.getMessage()));
+            return;
+        }
+
+        if (complaintIds.isEmpty()) {
+            ctx.status(400).json(Map.of("error", "No complaint IDs provided"));
+            return;
+        }
+
+        Map<String, Object> result = complaintManager.previewAutoAssignments(complaintIds);
+        ctx.json(result);
+    }
+
+    /** POST /api/assignments/auto/confirm or /api/v1/admin/assignments/auto/confirm */
+    public void confirmAutoAssign(Context ctx) {
+        Long adminId = ctx.attribute("userId");
+        if (adminId == null) {
+            adminId = 1L;
+        }
+
+        List<Map<String, Object>> assignments = new ArrayList<>();
+        try {
+            String bodyStr = ctx.body() != null ? ctx.body().trim() : "";
+            if (bodyStr.startsWith("[")) {
+                List<?> rawList = ctx.bodyAsClass(List.class);
+                for (Object item : rawList) {
+                    if (item instanceof Map<?, ?> m) {
+                        Map<String, Object> conv = new LinkedHashMap<>();
+                        m.forEach((k, v) -> conv.put(String.valueOf(k), v));
+                        assignments.add(conv);
+                    }
+                }
+            } else if (!bodyStr.isEmpty()) {
+                Map<?, ?> map = ctx.bodyAsClass(Map.class);
+                Object assignObj = map.get("assignments");
+                if (assignObj instanceof List<?> list) {
+                    for (Object item : list) {
+                        if (item instanceof Map<?, ?> m) {
+                            Map<String, Object> conv = new LinkedHashMap<>();
+                            m.forEach((k, v) -> conv.put(String.valueOf(k), v));
+                            assignments.add(conv);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            ctx.status(400).json(Map.of("error", "Invalid JSON payload for confirm: " + e.getMessage()));
+            return;
+        }
+
+        if (assignments.isEmpty()) {
+            ctx.status(400).json(Map.of("error", "No assignments provided to confirm"));
+            return;
+        }
+
+        Map<String, Object> result = complaintManager.confirmAssignments(assignments, adminId);
+        if (Boolean.FALSE.equals(result.get("success"))) {
+            ctx.status(409).json(result);
+            return;
+        }
+        ctx.json(result);
+    }
+
     /** GET /api/v1/admin/staff */
     public void listStaff(Context ctx) {
         List<MaintenanceStaff> staff = userDao.findAllStaff(null);

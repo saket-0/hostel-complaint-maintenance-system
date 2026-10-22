@@ -3,11 +3,14 @@ package edu.vit.hcms.service.complaint;
 import edu.vit.hcms.core.enums.Category;
 import edu.vit.hcms.core.enums.ComplaintStatus;
 import edu.vit.hcms.core.enums.Priority;
+import edu.vit.hcms.core.enums.Specialization;
 import edu.vit.hcms.core.exception.DuplicateEntryException;
 import edu.vit.hcms.core.exception.InvalidStatusTransitionException;
 import edu.vit.hcms.core.exception.ValidationException;
+import edu.vit.hcms.core.interfaces.AssignmentStrategy;
 import edu.vit.hcms.core.interfaces.ComplaintStatusListener;
 import edu.vit.hcms.core.model.Complaint;
+import edu.vit.hcms.core.model.MaintenanceStaff;
 import edu.vit.hcms.persistence.dao.ComplaintDao;
 import edu.vit.hcms.persistence.dao.SupportDao;
 import edu.vit.hcms.persistence.dao.UserDao;
@@ -21,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 
@@ -330,5 +334,97 @@ class ComplaintManagerTest {
                 h.getNote().contains("Priority changed from LOW to HIGH")
         ));
         verify(txManager).commit();
+    }
+
+    @Test
+    @DisplayName("previewAutoAssignments computes proposed staff with no writes")
+    void testPreviewAutoAssignments() {
+        Complaint c = Complaint.builder()
+                .complaintId("HCM-2026-000100")
+                .studentId(101L)
+                .category(Category.ELECTRICAL)
+                .description("Light fixture flickering in room")
+                .priority(Priority.HIGH)
+                .status(ComplaintStatus.NEW)
+                .studentHostelBlock("Block A")
+                .studentRoomNumber("101")
+                .build();
+
+        MaintenanceStaff staff = new MaintenanceStaff();
+        staff.setUserId(201L);
+        staff.setName("Alice Electrician");
+        staff.setSpecialization(Specialization.ELECTRICAL);
+        staff.setAvailable(true);
+
+        when(complaintDao.findById("HCM-2026-000100")).thenReturn(Optional.of(c));
+        when(userDao.findAllStaff(null)).thenReturn(List.of(staff));
+        when(userDao.findAllStaff(true)).thenReturn(List.of(staff));
+        when(complaintDao.staffWorkload()).thenReturn(Map.of(201L, 2L));
+
+        complaintManager.registerStrategy("specialization", new AssignmentStrategy() {
+            @Override
+            public Optional<MaintenanceStaff> selectStaff(Complaint comp, List<MaintenanceStaff> avail) {
+                return Optional.of(staff);
+            }
+            @Override
+            public String getStrategyName() {
+                return "SpecializationMatch";
+            }
+        });
+
+        Map<String, Object> preview = complaintManager.previewAutoAssignments(List.of("HCM-2026-000100"));
+
+        assertNotNull(preview);
+        List<?> tickets = (List<?>) preview.get("tickets");
+        assertEquals(1, tickets.size());
+
+        Map<?, ?> t0 = (Map<?, ?>) tickets.get(0);
+        assertEquals("HCM-2026-000100", t0.get("ticketId"));
+        assertEquals("Block A - Room 101", t0.get("location"));
+        assertNotNull(t0.get("proposedStaff"));
+        Map<?, ?> proposed = (Map<?, ?>) t0.get("proposedStaff");
+        assertEquals(201L, proposed.get("staffId"));
+
+        // Verify NO writes were performed
+        verify(complaintDao, never()).update(any());
+        verify(txManager, never()).begin();
+        verify(txManager, never()).commit();
+    }
+
+    @Test
+    @DisplayName("confirmAssignments saves in one transaction and dispatches notifications")
+    void testConfirmAssignmentsSuccess() {
+        Complaint c = Complaint.builder()
+                .complaintId("HCM-2026-000101")
+                .studentId(101L)
+                .category(Category.PLUMBING)
+                .description("Tap leaking water")
+                .priority(Priority.MEDIUM)
+                .status(ComplaintStatus.NEW)
+                .build();
+
+        MaintenanceStaff staff = new MaintenanceStaff();
+        staff.setUserId(202L);
+        staff.setName("Bob Plumber");
+        staff.setSpecialization(Specialization.PLUMBING);
+        staff.setAvailable(true);
+
+        when(complaintDao.findById("HCM-2026-000101")).thenReturn(Optional.of(c));
+        when(userDao.findById(202L)).thenReturn(Optional.of(staff));
+
+        Map<String, Object> result = complaintManager.confirmAssignments(
+                List.of(Map.of("ticketId", "HCM-2026-000101", "staffId", 202L)),
+                999L
+        );
+
+        assertTrue((Boolean) result.get("success"));
+        assertEquals(1, result.get("assignedCount"));
+        assertEquals(ComplaintStatus.ASSIGNED, c.getStatus());
+        assertEquals(202L, c.getStaffId());
+
+        verify(txManager, times(1)).begin();
+        verify(complaintDao, times(1)).update(c);
+        verify(statusListener, times(1)).onStatusChange(eq(c), eq(ComplaintStatus.NEW), eq(ComplaintStatus.ASSIGNED), eq(999L), anyString());
+        verify(txManager, times(1)).commit();
     }
 }

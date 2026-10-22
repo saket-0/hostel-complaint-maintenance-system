@@ -222,6 +222,259 @@ public class ComplaintManager {
     }
 
     /**
+     * Previews auto-assignment for a list of complaints without persisting any changes.
+     * Evaluates strategies, calculates projected workloads, detects warnings and stale/assigned tickets.
+     */
+    public Map<String, Object> previewAutoAssignments(List<String> complaintIds) {
+        final int WORKLOAD_CAP = 10;
+        List<MaintenanceStaff> allStaff = userDao.findAllStaff(null);
+        List<MaintenanceStaff> availableStaff = userDao.findAllStaff(true);
+        Map<Long, Long> currentWorkload = complaintDao.staffWorkload();
+
+        Map<Long, Long> projectedWorkload = new HashMap<>(currentWorkload);
+        List<Map<String, Object>> tickets = new ArrayList<>();
+        Map<String, Integer> priorityCounts = new LinkedHashMap<>();
+        int overdueCount = 0;
+        int alreadyAssignedCount = 0;
+        List<Map<String, Object>> warningsList = new ArrayList<>();
+        Set<Long> involvedStaffIds = new HashSet<>();
+
+        for (String id : complaintIds) {
+            Optional<Complaint> opt = complaintDao.findById(id);
+            if (opt.isEmpty()) {
+                continue;
+            }
+            Complaint c = opt.get();
+            Map<String, Object> t = new LinkedHashMap<>();
+            t.put("ticketId", c.getComplaintId());
+            t.put("category", c.getCategory() != null ? c.getCategory().name() : "OTHER");
+            t.put("categoryDisplay", c.getCategory() != null ? c.getCategory().getDisplayName() : "Other");
+            t.put("priority", c.getPriority() != null ? c.getPriority().name() : "LOW");
+            t.put("priorityLevel", c.getPriority() != null ? c.getPriority().getLevel() : 1);
+            t.put("description", c.getDescription() != null ? c.getDescription() : "");
+
+            String location = "";
+            if (c.getStudentHostelBlock() != null && !c.getStudentHostelBlock().isBlank()) {
+                location += c.getStudentHostelBlock();
+            }
+            if (c.getStudentRoomNumber() != null && !c.getStudentRoomNumber().isBlank()) {
+                location += (location.isEmpty() ? "" : " - Room ") + c.getStudentRoomNumber();
+            }
+            if (location.isEmpty()) location = "—";
+            t.put("location", location);
+
+            t.put("status", c.getStatus() != null ? c.getStatus().name() : "NEW");
+            boolean isAlreadyAssigned = (c.getStatus() != ComplaintStatus.NEW && c.getStatus() != ComplaintStatus.REOPENED)
+                    || c.getStaffId() != null;
+            t.put("isAlreadyAssigned", isAlreadyAssigned);
+            if (isAlreadyAssigned) {
+                alreadyAssignedCount++;
+                if (c.getStaffId() != null) {
+                    t.put("currentStaffId", c.getStaffId());
+                    userDao.findById(c.getStaffId()).ifPresent(u -> t.put("currentStaffName", u.getName()));
+                }
+            }
+
+            boolean isOverdue = c.getDueBy() != null && LocalDateTime.now().isAfter(c.getDueBy());
+            t.put("isOverdue", isOverdue);
+            if (isOverdue) overdueCount++;
+
+            String prioName = c.getPriority() != null ? c.getPriority().name() : "LOW";
+            priorityCounts.put(prioName, priorityCounts.getOrDefault(prioName, 0) + 1);
+
+            Category cat = c.getCategory();
+            Specialization reqSpec = cat != null ? cat.getRequiredSpecialization() : null;
+            List<Map<String, Object>> eligibleList = new ArrayList<>();
+            for (MaintenanceStaff s : allStaff) {
+                if (reqSpec == null || s.getSpecialization() == reqSpec) {
+                    Map<String, Object> sm = new LinkedHashMap<>();
+                    sm.put("staffId", s.getUserId());
+                    sm.put("name", s.getName());
+                    sm.put("specialization", s.getSpecialization().name());
+                    sm.put("specializationDisplay", s.getSpecialization().getDisplayName());
+                    sm.put("activeComplaints", currentWorkload.getOrDefault(s.getUserId(), 0L));
+                    sm.put("available", s.isAvailable());
+                    eligibleList.add(sm);
+                }
+            }
+            if (eligibleList.isEmpty()) {
+                for (MaintenanceStaff s : allStaff) {
+                    Map<String, Object> sm = new LinkedHashMap<>();
+                    sm.put("staffId", s.getUserId());
+                    sm.put("name", s.getName());
+                    sm.put("specialization", s.getSpecialization().name());
+                    sm.put("specializationDisplay", s.getSpecialization().getDisplayName());
+                    sm.put("activeComplaints", currentWorkload.getOrDefault(s.getUserId(), 0L));
+                    sm.put("available", s.isAvailable());
+                    eligibleList.add(sm);
+                }
+            }
+            t.put("eligibleStaff", eligibleList);
+
+            Optional<MaintenanceStaff> selectedStaff = Optional.empty();
+            String matchedStrategyName = null;
+            for (AssignmentStrategy strategy : strategies.values()) {
+                selectedStaff = strategy.selectStaff(c, availableStaff);
+                if (selectedStaff.isPresent()) {
+                    matchedStrategyName = strategy.getStrategyName();
+                    break;
+                }
+            }
+
+            List<String> rowWarnings = new ArrayList<>();
+            if (isAlreadyAssigned) {
+                rowWarnings.add("Ticket is already assigned" + (t.containsKey("currentStaffName") ? " to " + t.get("currentStaffName") : ""));
+            }
+
+            if (selectedStaff.isPresent()) {
+                MaintenanceStaff staff = selectedStaff.get();
+                involvedStaffIds.add(staff.getUserId());
+                long curOpen = currentWorkload.getOrDefault(staff.getUserId(), 0L);
+                long projOpen = projectedWorkload.getOrDefault(staff.getUserId(), curOpen) + 1;
+                projectedWorkload.put(staff.getUserId(), projOpen);
+
+                String reason;
+                if ("SpecializationMatch".equals(matchedStrategyName)) {
+                    reason = staff.getSpecialization().getDisplayName() + " specialist";
+                    if (curOpen == 0) {
+                        reason += ", lowest workload";
+                    }
+                } else if ("LeastWorkload".equals(matchedStrategyName)) {
+                    reason = "Lowest workload (" + curOpen + " open)";
+                } else {
+                    reason = matchedStrategyName != null ? matchedStrategyName : "Auto-match";
+                }
+
+                if (projOpen > WORKLOAD_CAP) {
+                    rowWarnings.add("Staff " + staff.getName() + " would exceed workload cap of " + WORKLOAD_CAP + " (" + projOpen + " projected)");
+                }
+
+                Map<String, Object> proposed = new LinkedHashMap<>();
+                proposed.put("staffId", staff.getUserId());
+                proposed.put("name", staff.getName());
+                proposed.put("specialization", staff.getSpecialization().name());
+                proposed.put("specializationDisplay", staff.getSpecialization().getDisplayName());
+                proposed.put("currentOpenTickets", curOpen);
+                proposed.put("projectedOpenTickets", projOpen);
+                proposed.put("reason", reason);
+                t.put("proposedStaff", proposed);
+            } else {
+                rowWarnings.add("No eligible staff available");
+                t.put("proposedStaff", null);
+            }
+
+            t.put("warnings", rowWarnings);
+            for (String rw : rowWarnings) {
+                Map<String, Object> wm = new LinkedHashMap<>();
+                wm.put("ticketId", c.getComplaintId());
+                wm.put("message", rw);
+                warningsList.add(wm);
+            }
+
+            tickets.add(t);
+        }
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalTickets", tickets.size());
+        summary.put("staffCount", involvedStaffIds.size());
+        summary.put("priorityCounts", priorityCounts);
+        summary.put("overdueCount", overdueCount);
+        summary.put("alreadyAssignedCount", alreadyAssignedCount);
+        summary.put("allAlreadyAssigned", !tickets.isEmpty() && alreadyAssignedCount == tickets.size());
+        summary.put("warningCount", warningsList.size());
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("tickets", tickets);
+        response.put("summary", summary);
+        response.put("warnings", warningsList);
+        return response;
+    }
+
+    /**
+     * Validates and confirms assignments in a single atomic transaction.
+     * Re-validates ticket assignability and staff availability to prevent stale race conditions.
+     */
+    public Map<String, Object> confirmAssignments(List<Map<String, Object>> assignments, Long adminId) {
+        if (assignments == null || assignments.isEmpty()) {
+            throw new ValidationException("assignments", "No assignments provided");
+        }
+
+        List<Map<String, Object>> conflicts = new ArrayList<>();
+        List<Complaint> complaintsToUpdate = new ArrayList<>();
+        List<MaintenanceStaff> staffList = new ArrayList<>();
+
+        for (Map<String, Object> item : assignments) {
+            String ticketId = (String) (item.get("ticketId") != null ? item.get("ticketId") : item.get("complaintId"));
+            Object staffIdObj = item.get("staffId");
+            Long staffId = staffIdObj instanceof Number ? ((Number) staffIdObj).longValue() :
+                    (staffIdObj != null ? Long.parseLong(staffIdObj.toString()) : null);
+
+            if (ticketId == null || staffId == null) {
+                conflicts.add(Map.of("ticketId", ticketId != null ? ticketId : "UNKNOWN",
+                        "reason", "Missing ticket ID or staff ID"));
+                continue;
+            }
+
+            Optional<Complaint> cOpt = complaintDao.findById(ticketId);
+            if (cOpt.isEmpty()) {
+                conflicts.add(Map.of("ticketId", ticketId, "reason", "Complaint not found"));
+                continue;
+            }
+            Complaint c = cOpt.get();
+
+            Optional<User> uOpt = userDao.findById(staffId);
+            if (uOpt.isEmpty() || !(uOpt.get() instanceof MaintenanceStaff)) {
+                conflicts.add(Map.of("ticketId", ticketId, "reason", "Selected staff member not found"));
+                continue;
+            }
+            MaintenanceStaff ms = (MaintenanceStaff) uOpt.get();
+
+            complaintsToUpdate.add(c);
+            staffList.add(ms);
+        }
+
+        if (!conflicts.isEmpty()) {
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", false);
+            res.put("conflicts", conflicts);
+            res.put("message", "Validation failed for " + conflicts.size() + " ticket(s)");
+            return res;
+        }
+
+        txManager.begin();
+        try {
+            int count = 0;
+            for (int i = 0; i < complaintsToUpdate.size(); i++) {
+                Complaint c = complaintsToUpdate.get(i);
+                MaintenanceStaff ms = staffList.get(i);
+                ComplaintStatus oldStatus = c.getStatus();
+
+                c.setStaffId(ms.getUserId());
+                c.setStatus(ComplaintStatus.ASSIGNED);
+                c.setAssignedStaffName(ms.getName());
+                c.setAssignedStaffSpecialization(ms.getSpecialization().getDisplayName());
+
+                complaintDao.update(c);
+                String staffDesc = ms.getName() + " (" + ms.getSpecialization().getRoleTitle() + ")";
+                notifyListeners(c, oldStatus, ComplaintStatus.ASSIGNED, adminId, "Assigned to " + staffDesc);
+                lruCache.put(c.getComplaintId(), c);
+                count++;
+            }
+            txManager.commit();
+
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("success", true);
+            res.put("assignedCount", count);
+            res.put("message", count + " ticket" + (count == 1 ? "" : "s") + " assigned successfully");
+            return res;
+        } catch (Exception e) {
+            txManager.rollback();
+            log.error("Batch assignment transaction failed: {}", e.getMessage(), e);
+            throw new HcmsException("Failed to confirm assignments: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Updates complaint status (staff action: ASSIGNED->IN_PROGRESS, IN_PROGRESS->RESOLVED).
      */
     public Complaint updateComplaintStatus(String complaintId, ComplaintStatus newStatus,
