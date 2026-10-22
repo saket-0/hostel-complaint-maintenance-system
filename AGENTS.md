@@ -9,7 +9,7 @@
 ---
 
 ## Where Things Live (Verified Paths - Consult docs/CODEMAP.md for Full Map)
-- **Complaint Business Logic**: `hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`
+- **Complaint Business Logic**: `hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java` (Emergency keywords, triage queue, auto-assign, priority audit history)
 - **User Governance Service**: `hcms-service/src/main/java/edu/vit/hcms/service/user/UserManager.java`
 - **Status State Machine**: `hcms-core/src/main/java/edu/vit/hcms/core/enums/ComplaintStatus.java`
 - **Auto-Assignment Strategies**: `hcms-service/src/main/java/edu/vit/hcms/service/strategy/` (`SpecializationMatchStrategy.java`, `LeastWorkloadStrategy.java`)

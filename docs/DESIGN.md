@@ -82,6 +82,11 @@ The method `ComplaintStatus.canTransitionTo(ComplaintStatus target)` validates t
 - **Role Boundary Enforcement**: Students can update their name, room number, and hostel block, but cannot escalate roles or modify email; Staff can update their name and toggle assignment availability; Administrators possess full override authority across accounts.
 - **Soft Deletion Policy**: Administrative deactivation sets `users.active = FALSE` rather than SQL `DELETE`, preserving foreign key references and historical integrity across complaints, comments, audit logs, and feedback.
 
+### 2.5 Automated Priority Escalation & Audit Trail Architecture
+- **Automated Emergency Detection**: `ComplaintManager.registerComplaint()` scans complaint descriptions and category against emergency keywords (`sparks`, `sparking`, `short circuit`, `fire`, `flood`, `flooding`, `burst`, `smoke`, `gas leak`). If detected or if the student flags the complaint as a safety hazard, initial priority is automatically elevated to `Priority.HIGH`.
+- **Administrative Override Audit Logging**: Whenever priority is updated manually via `ComplaintManager.updatePriority()`, an immutable audit record is saved to `complaint_history` via `SupportDao.saveHistory()`, recording the previous and new priority levels, modifier user ID, and timestamp.
+- **SLA Escalation Engine**: The scheduled daemon `SlaEscalationEngine` runs every 15 minutes to evaluate overdue tickets, escalating unassigned or unresolved complaints according to defined SLA thresholds.
+
 ---
 
 ## 3. Design Patterns Applied
@@ -164,9 +169,9 @@ HCMS enforces a unified, single-level top navigation structure per user role. Du
 
 | Role | Navigation Links | Default Route | Allowed Hash Routes |
 | :--- | :--- | :--- | :--- |
-| **Student** | `My Complaints` \| `+ New Complaint` \| `Notifications` \| `Profile Menu` | `#/mine` | `#/mine`, `#/new` |
-| **Staff** | `My Tasks` \| `Completed` \| `Notifications` \| `Profile Menu` | `#/tasks` | `#/tasks`, `#/completed` |
-| **Admin** | `Triage` \| `All Complaints` \| `Analytics` \| `Staff` \| `Notifications` \| `Profile Menu` | `#/triage` | `#/triage`, `#/complaints`, `#/analytics`, `#/staff` |
+| **Student** | `My Complaints` (Active & Closed/Ratings) \| `+ New Complaint` \| `Notifications` \| `Profile Menu` | `#/mine` | `#/mine`, `#/new` |
+| **Staff** | `My Tasks` \| `History` (Task History & Completed) \| `Notifications` \| `Profile Menu` | `#/tasks` | `#/tasks`, `#/completed` |
+| **Admin** | `Triage` \| `All Complaints` \| `Analytics` \| `Staff & Users` \| `Notifications` \| `Profile Menu` | `#/triage` | `#/triage`, `#/complaints`, `#/analytics`, `#/staff` |
 
 ### 7.2 Route Guard & Deep Linking
 - **Single Source of Truth**: The client-side router (`app.js`) validates incoming hash fragments against `ROLE_ROUTES[user.role]`.
@@ -206,3 +211,17 @@ To ensure realistic development and deterministic testing, seed data satisfies s
 2. **Complete State Traversal**: A corresponding `complaint_history` entry exists for every status the complaint has passed through (`NEW` $\to$ `ASSIGNED` $\to$ `IN_PROGRESS` $\to$ `RESOLVED`).
 3. **Readable Actor Audit Trail**: Audit history logs human-readable descriptions server-side (e.g., `"Assigned to Arun (Electrical)"` rather than `"Assigned to staff 2"`).
 4. **Automated Startup Validation**: `SeedDataValidator` scans all seeded complaints and history rows on startup and test runs, failing fast with descriptive errors if any invariant is violated.
+
+---
+
+## 10. Design System, WCAG AA Accessibility & Frontend Architecture
+
+The user interface follows a modern, zero-dependency vanilla ES module architecture coupled with refined CSS tokens:
+
+1. **Refined Neo-Brutalist Design Tokens**: Uses softened borders (`--border-width: 1.5px`) and crisp offset drop shadows (`--shadow-hard: 3px 3px var(--border-color)`), reserving heavy borders strictly for focused or actively selected items.
+2. **Typography & Sentence Case**: Clean Plus Jakarta Sans font with sentence-case headings and action buttons, keeping uppercase exclusively for data table headers and status tags.
+3. **WCAG AA Certified Contrast**: All priority badges (`LOW`, `MEDIUM`, `HIGH`) and status badges (`NEW`, `ASSIGNED`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`, `REOPENED`) satisfy WCAG AA 4.5:1 minimum contrast (achieving 7:1+ ratio).
+4. **Normalized Priority Resolution**: `app.js:getPriorityInfo(priority)` provides dual-format parsing capable of handling backend enum string names (`"HIGH"`, `"MEDIUM"`, `"LOW"`) and database level integers (`1`, `2`, `3`), preventing display discrepancies across all views.
+5. **Unified SVG Icon System**: Clean inline SVG line icons via `icons.js` replace legacy emojis, ensuring platform-agnostic visual consistency.
+6. **Mobile Responsiveness (360px Viewports)**: Data tables feature accessible horizontal scrolling and touch-friendly targets, and modals/drawers seamlessly collapse on viewports down to 360px width.
+

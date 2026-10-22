@@ -20,8 +20,8 @@ University hostel maintenance complaints (electrical sparking, ceiling fan failu
 - **No transparent student tracking**, SLA breach warnings, or resolution feedback.
 
 **HCMS (Hostel Complaint & Maintenance System)** digitizes this lifecycle completely:
-1. **Student Reports**: Registers complaint with category, auto-priority elevation for hazard keywords, description, and optional photo.
-2. **Admin Reviews & Assigns**: Triages queue ordered by priority and age, overrides priority, or executes **Intelligent Auto-Assign** using Strategy patterns.
+1. **Student Reports**: Registers complaint with category, auto-priority elevation for emergency keywords (`sparks`, `flood`, `burst`, `smoke`, `fire`), safety risk toggle, room vs common-area selector, and drag-drop image dropzone with live preview.
+2. **Admin Reviews & Assigns**: Triages queue ordered by priority and age with interactive KPI filters, overrides priority with audit logging, or executes **Intelligent Auto-Assign** using Strategy patterns.
 3. **Staff Resolves**: Maintenance technician receives notifications, accepts tasks (`IN_PROGRESS`), and marks work `RESOLVED` with technician notes.
 4. **Student Tracks & Closes**: Student tracks live history timeline, provides 1–5 star ratings with feedback, closes ticket, or reopens within 7 days.
 5. **Background SLA Engine**: Automatically escalates priorities for overdue complaints and auto-closes resolved tickets past 7 days.
@@ -341,19 +341,23 @@ The database is pre-seeded with realistic data across all roles:
 ## 9. Frontend User Interface & Experience
 
 The user interface is a zero-dependency **Single Page Application (SPA)** written in clean ES modules and vanilla CSS adhering to the slide deck's **Neo-brutalist aesthetic**:
-- **Color Palette**: Cream background (`#F5F0E8`), Deep Navy (`#0B1F4A`), Cyan (`#00B4D8`), Teal (`#1B7A6B`), Amber (`#E8960C`), and Coral Red (`#D90429`).
-- **Typography & Rationed Brutalism**: Bold geometric headers, 15px minimum body type scale, 2.5px solid borders and hard offset shadows on primary cards and modals, with clean 1px borders on inputs, secondary buttons, and tables.
+- **Color Palette & Design Tokens**: Cream background (`#F5F0E8`), Deep Navy (`#0B1F4A`), Cyan (`#00B4D8`), Teal (`#1B7A6B`), Amber (`#E8960C`), and Coral Red (`#D90429`). Refined with softened borders (`1.5px`) and crisp offset box shadows (`3px 3px`), reserving heavy borders for active selections.
+- **Typography & Sentence Case**: High-legibility Google Fonts (Plus Jakarta Sans), clean sentence case headings and navigation, regular font weights for timestamps, and uppercase styling reserved strictly for table headers and status tags.
+- **WCAG AA Certified Contrast**: High-contrast status badges (exceeding 7:1 contrast ratio, well above the 4.5:1 WCAG AA threshold) paired with an inline SVG line-icon set via `icons.js`.
 - **Single-Level Navigation**: Exactly one top navigation bar per role with active route highlighting, route guards, and automatic redirects:
-  - **Student**: `My Complaints (#/mine)` | `+ New Complaint (#/new)` | Notification Bell | Profile Menu
-  - **Staff**: `My Tasks (#/tasks)` | `Completed (#/completed)` | Notification Bell | Profile Menu
-  - **Admin**: `Triage (#/triage)` | `All Complaints (#/complaints)` | `Analytics (#/analytics)` | `Staff & Users (#/staff)` | Notification Bell | Profile Menu
-- **Admin Triage Board**: Four live clickable counter cards (Unassigned, Overdue, Reopened, High-Priority Open) that instantaneously filter the triage table sorted by priority and age.
+  - **Student**: `My Complaints (#/mine)` (Active & consolidated "Closed & Ratings" tab) | `+ New Complaint (#/new)` | Notification Bell | Profile Menu
+  - **Staff**: `My Tasks (#/tasks)` | `History (#/completed)` (Unified task history and completed queue with status & search filters) | Notification Bell | Profile Menu
+  - **Admin**: `Triage (#/triage)` (Summary strip filter: Overdue, Unassigned, In Progress, Resolved Today; interactive sort; sticky bulk actions) | `All Complaints (#/complaints)` | `Analytics (#/analytics)` | `Staff & Users (#/staff)` | Notification Bell | Profile Menu
+- **Admin Triage & Operations**: 4-state summary KPI filter strip, prominent red accent borders on overdue complaints, single-line compact location/student formatting (`A-101 · Priya Sharma`), category icons, sticky bulk assignment bar, and drawer SLA countdown timer.
+- **Student Experience**: Lightweight complaint cards with inline progress indicators, actionable "Fixed? Confirm or Reopen" banners on resolved complaints, submission modal with safety hazard elevation toggle, confirmed room verification with quick edit, location selector (My Room vs Common Area), drag-and-drop photo dropzone with instant preview, and client-side duplicate warning.
+- **Staff Task Console**: Location-first cards (`Block B · Room 410`), clear reporter labeling, student reopen reasons rendered in alert boxes, 3 operational queues ("Reopened Tasks", "Needs Action Now", "In Progress"), and unified task history with relative (<7d) and absolute timestamps.
 - **Admin Staff & User Management**: Tabbed interface featuring Maintenance Staff roster (with specialization edit modal, duty availability toggle, and deactivation) and Student Directory (with live search by name/room/block, pagination, and room/block editing modal).
-- **Universal User Profile Modal**: Reusable modal accessible from top navigation for all roles: Students can self-service update their hostel block and room number with validation; Staff can toggle on-duty availability; Admins can inspect their administrative role.
+- **Universal User Profile Modal**: Reusable modal accessible from top navigation for all roles: Students can self-service update their hostel block (validated dropdown) and room number; Staff can toggle on-duty availability; Admins can inspect their administrative role.
 - **Contextual Actions**: Driven strictly by the server (`allowedActions` in DTO); users only see actionable buttons valid for their role and the complaint's lifecycle stage.
-- **Interactive Detail Drawer**: Right-side slide-over drawer displaying a dedicated **Student Information Card** (student name, block, room, email), complaint metadata, progress stepper, assigned staff, SLA due status, comments thread, audit history, and feedback.
+- **Interactive Detail Drawer**: Right-side slide-over drawer displaying student metadata, assigned staff card with contact info, lifecycle milestone stepper, SLA countdown timer, comments thread, audit history, and feedback.
 - **Offline Charting**: Includes locally bundled, zero-CDN canvas charting (`chart.min.js`) for status distribution, category breakdown, and 30-day trends.
-- **Built with Java Live Ticker**: Prominently displays JVM version, server uptime, active threads, and queue health in a subtle, accessible footer.
+- **Shimmer Skeletons & Responsive Layout**: Responsive layout optimized down to 360px mobile viewports with fluid scroll containers and shimmer skeleton loading states.
+- **Built with Java Live Ticker**: Prominently displays JVM version, server uptime, active threads, and queue health in a subtle, accessible footer restricted to administrative sessions.
 
 ---
 

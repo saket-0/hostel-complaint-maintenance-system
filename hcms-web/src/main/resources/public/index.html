@@ -200,9 +200,31 @@
 
             <!-- Complaints List -->
             <div id="studentComplaints" class="complaints-list">
-                <div class="loading" id="studentLoading">Loading complaints...</div>
+                <div class="skeleton-loader" id="studentLoading">
+                    <div class="skeleton-card">
+                        <div class="skeleton-row">
+                            <div class="skeleton-box sk-title"></div>
+                            <div class="skeleton-box sk-badge"></div>
+                        </div>
+                        <div class="skeleton-box sk-text"></div>
+                        <div class="skeleton-box sk-text-sm"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-row">
+                            <div class="skeleton-box sk-title" style="width: 48%;"></div>
+                            <div class="skeleton-box sk-badge"></div>
+                        </div>
+                        <div class="skeleton-box sk-text" style="width: 80%;"></div>
+                        <div class="skeleton-box sk-text-sm"></div>
+                    </div>
+                </div>
                 <div class="empty-state" id="studentEmpty" style="display:none;">
-                    <div class="empty-icon" style="font-size: 2.8rem; margin-bottom: 8px;">🎉</div>
+                    <div class="empty-state-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
                     <h3 style="margin-bottom: 6px;">No complaints found</h3>
                     <p style="color: var(--grey); margin-bottom: 16px;">Everything is running smoothly! If you have any maintenance needs, let us know.</p>
                     <button type="button" class="btn btn-primary" id="studentEmptySubmitBtn">+ Submit your first complaint</button>
@@ -646,19 +668,19 @@
                         <strong class="kpi-num" id="kpiValAll">0</strong>
                     </button>
                     <button type="button" class="staff-kpi-card kpi-reopened" data-queue="reopened" id="kpiStaffReopened">
-                        <span class="kpi-label">⚠️ Reopened</span>
+                        <span class="kpi-label"><svg class="inline-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Reopened</span>
                         <strong class="kpi-num text-red" id="kpiValReopened">0</strong>
                     </button>
                     <button type="button" class="staff-kpi-card kpi-action" data-queue="assigned" id="kpiStaffAssigned">
-                        <span class="kpi-label">⚡ Needs Action</span>
+                        <span class="kpi-label"><svg class="inline-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Needs Action</span>
                         <strong class="kpi-num text-navy" id="kpiValAssigned">0</strong>
                     </button>
                     <button type="button" class="staff-kpi-card kpi-progress" data-queue="inprogress" id="kpiStaffInProgress">
-                        <span class="kpi-label">🔄 In Progress</span>
+                        <span class="kpi-label"><svg class="inline-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> In Progress</span>
                         <strong class="kpi-num text-teal" id="kpiValInProgress">0</strong>
                     </button>
                     <button type="button" class="staff-kpi-card kpi-overdue" data-queue="overdue" id="kpiStaffOverdue">
-                        <span class="kpi-label">🚨 Overdue</span>
+                        <span class="kpi-label"><svg class="inline-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Overdue</span>
                         <strong class="kpi-num text-red" id="kpiValOverdue">0</strong>
                     </button>
                 </div>
@@ -671,17 +693,32 @@
                     <div class="staff-sort-wrapper">
                         <label for="staffSortSelect" class="sr-only">Sort Tasks</label>
                         <select id="staffSortSelect" class="form-control staff-sort-select">
-                            <option value="overdue-priority">⚡ Overdue &amp; High Priority First (Default)</option>
-                            <option value="due-soonest">⏱ Due Soonest</option>
-                            <option value="newest">📅 Newest First</option>
-                            <option value="oldest">⏳ Oldest First</option>
+                            <option value="overdue-priority">Overdue &amp; High Priority First (Default)</option>
+                            <option value="due-soonest">Due Soonest</option>
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Active Tasks Container (renders the 3 grouped queues) -->
                 <div id="staffTasks" class="staff-queues-container">
-                    <div class="loading">Loading tasks...</div>
+                    <div class="skeleton-loader">
+                        <div class="skeleton-card">
+                            <div class="skeleton-row">
+                                <div class="skeleton-box sk-title"></div>
+                                <div class="skeleton-box sk-badge"></div>
+                            </div>
+                            <div class="skeleton-box sk-text"></div>
+                        </div>
+                        <div class="skeleton-card">
+                            <div class="skeleton-row">
+                                <div class="skeleton-box sk-title" style="width: 55%;"></div>
+                                <div class="skeleton-box sk-badge"></div>
+                            </div>
+                            <div class="skeleton-box sk-text"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -797,15 +834,15 @@
                             <div class="location-toggle-group">
                                 <label class="location-radio-pill active" id="locTypeRoomLabel">
                                     <input type="radio" name="complaintLocationType" id="locTypeRoom" value="ROOM" checked>
-                                    <span>🏠 My Room</span>
+                                    <span style="display:inline-flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> My Room</span>
                                 </label>
                                 <label class="location-radio-pill" id="locTypeCommonLabel">
                                     <input type="radio" name="complaintLocationType" id="locTypeCommon" value="COMMON">
-                                    <span>🏢 Common Area</span>
+                                    <span style="display:inline-flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="12"></line><line x1="15" y1="22" x2="15" y2="12"></line></svg> Common Area</span>
                                 </label>
                             </div>
                             <div id="roomLocationMeta" class="location-confirmed-bar" style="margin-top: 6px;">
-                                <span>📍 Assigned: <strong id="confirmedLocationFull">Loading...</strong></span>
+                                <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Assigned: <strong id="confirmedLocationFull">Loading...</strong></span>
                                 <a href="#" id="editProfileRoomLink" style="margin-left: 8px; font-size: 0.8rem; color: var(--navy); text-decoration: underline;">Change in Profile</a>
                             </div>
                             <div id="commonAreaGroup" style="display:none; margin-top: 8px;">
@@ -845,7 +882,7 @@
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <input type="checkbox" id="complaintSafetyRisk" style="width: 18px; height: 18px; cursor: pointer;">
                                     <div>
-                                        <div style="font-weight: 700; font-size: 0.88rem; color: #0B1F4A;">⚠️ Urgent Safety Hazard?</div>
+                                        <div style="font-weight: 700; font-size: 0.88rem; color: #0B1F4A; display:flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--crimson);"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Urgent Safety Hazard?</div>
                                         <div style="font-size: 0.76rem; color: #64748B;">Sparks, gas leak, flooding, fire hazard, or broken door lock</div>
                                     </div>
                                 </div>
@@ -858,7 +895,7 @@
                             <label for="complaintPhoto">Photo of Damage <span class="text-muted" style="font-weight: normal; font-size: 0.85rem;">(Optional)</span></label>
                             <div class="dropzone" id="photoDropzone">
                                 <div class="dropzone-content" id="dropzonePrompt">
-                                    <span style="font-size: 1.6rem;">📷</span>
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--grey);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                                     <div style="font-weight: 600; font-size: 0.88rem; color: #0B1F4A; margin-top: 4px;">Drag & drop photo here or <span style="color: var(--cyan); text-decoration: underline;">browse</span></div>
                                     <div style="font-size: 0.75rem; color: var(--grey); margin-top: 2px;">Supports JPG, PNG, WEBP up to 5MB</div>
                                 </div>
@@ -933,7 +970,7 @@
                 <h3>Assign Complaint</h3>
                 <div id="assignStaffList"></div>
                 <div class="form-actions">
-                    <button class="btn btn-primary" id="autoAssignBtn">🤖 Auto-Assign</button>
+                    <button class="btn btn-primary" id="autoAssignBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:4px;"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg> Auto-Assign</button>
                 </div>
             </div>
         </div>
@@ -1183,10 +1220,10 @@
     <!-- Footer -->
     <footer class="footer" id="appFooter" style="display:none;">
         <div class="footer-content">
-            <span>Built with ☕ Java <span id="javaVersion">17</span></span>
-            <span>⏱ Uptime: <span id="uptime">00:00:00</span></span>
-            <span>🧵 Threads: <span id="threadCount">-</span></span>
-            <span>📬 Queue: <span id="queueDepth">-</span></span>
+            <span>Built with Java <span id="javaVersion">17</span></span>
+            <span>Uptime: <span id="uptime">00:00:00</span></span>
+            <span>Threads: <span id="threadCount">-</span></span>
+            <span>Queue: <span id="queueDepth">-</span></span>
             <span class="footer-brand">HCMS v1.0 — VIT Vellore</span>
         </div>
     </footer>

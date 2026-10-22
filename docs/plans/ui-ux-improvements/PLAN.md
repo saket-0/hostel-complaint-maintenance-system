@@ -5,7 +5,7 @@ slug: ui-ux-improvements
 branch: epic/ui-ux-improvements
 auto-commit: no
 created: 2026-10-21
-status: draft
+status: complete
 ```
 
 ---
@@ -143,7 +143,7 @@ Eliminate priority data discrepancies and functional UI bugs across HCMS, stream
 
 ---
 
-### [ ] P5 Global Design System, Typography, Contrast & Responsive Layout
+### [x] P5 Global Design System, Typography, Contrast & Responsive Layout
 - **Type**: UI
 - **Files to touch**:
   - `hcms-web/src/main/resources/public/css/style.css`
@@ -161,7 +161,7 @@ Eliminate priority data discrepancies and functional UI bugs across HCMS, stream
 
 ---
 
-### [ ] P6 Documentation Audit & Codemap Sync
+### [x] P6 Documentation Audit & Codemap Sync
 - **Type**: DOCS
 - **Files to touch**:
   - `docs/CODEMAP.md`
@@ -199,6 +199,9 @@ Eliminate priority data discrepancies and functional UI bugs across HCMS, stream
 | 2026-10-22 | P2 | Complete | Implemented top KPI summary strip with 1-click filter toggling and sort dropdowns, overdue row accent borders, compact location/student format, category icons, 2-line clamped descriptions, sticky bulk action bar for assignment/priority, collapsible export dropdown, duplicate detection, and top-placed staff assignment drawer with SLA countdown timer and interactive lifecycle stepper. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `admin.js`, `style.css`, `index.html` |
 | 2026-10-22 | P3 | Complete | Overhauled student complaint cards with compact progress indicator & progress bar, removed redundant student name line, deduplicated timestamps; revamped student detail drawer with assigned staff card, SLA countdown/target, and milestone guide; added 4-card KPI summary strip with formatted rating ('★ 5.0 (from N ratings)' or hidden when < 3); consolidated history into 'Closed & Ratings'; upgraded submission modal with safety hazard elevation, confirmed room with edit link, location selector (My Room vs Common Area), drag-and-drop photo dropzone with live preview, and real-time duplicate check; converted hostel block in profile modal to a validated dropdown. Next phase (P4): restructure staff task cards and merge task history. Docs updated: `docs/CODEMAP.md`. | `student.js`, `style.css`, `index.html` |
 | 2026-10-22 | P4 | Complete | Restructured staff task cards with prominent location header ('Block B · Room 410'), reporter labeling ('Reported by ...'), and student reopen reason alert box; implemented overdue and priority task sorting with visual grouping into 3 operational queues ('Reopened Tasks', 'Needs Action Now', 'In Progress'); merged completed and history views into a unified 'Task History & Completed' tab with status and search filtering, standardized relative (<7d) and absolute timestamps, student rating reviews, and distinct card hover/focus/selected states. Next phase (P5): global design system tokens, typography, WCAG AA contrast, and 360px responsive layout. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `staff.js`, `style.css`, `index.html` |
+| 2026-10-22 | P5 | Complete | Softened design tokens (--border-width: 1.5px, --shadow-hard: 3px 3px), switched headings/buttons/nav/forms/tabs to clean sentence case, set regular body font for dates, certified WCAG AA contrast compliance (7:1+ ratio) across all badge states, eliminated legacy emojis in favor of inline SVG line icons via icons.js, introduced shimmer skeleton loaders, and optimized responsive layouts for mobile screens down to 360px. Next phase (P6): final documentation audit and codemap sync. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `style.css`, `icons.js`, `index.html` |
+| 2026-10-22 | P6 | Complete | Regenerated `docs/CODEMAP.md`, reconciled `README.md`, `docs/DESIGN.md`, and `AGENTS.md` with priority escalation logic, role navigation updates, and WCAG AA contrast standards, added a11y contrast lesson in `docs/LESSONS.md`, and verified path integrity via `./quick.sh docs`. All epic phases complete. Docs updated: `docs/CODEMAP.md`, `docs/DESIGN.md`, `AGENTS.md`, `README.md`, `docs/LESSONS.md`. | `docs/CODEMAP.md`, `docs/DESIGN.md`, `AGENTS.md`, `README.md`, `docs/LESSONS.md`, `PLAN.md` |
+
 
 
 
