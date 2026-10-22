@@ -585,6 +585,7 @@
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-primary" id="btnAdminAddStaff" type="button">+ Add New Staff</button>
+                        <button class="btn btn-primary" id="btnAdminAddStudent" type="button" style="display:none;">+ Add New Student</button>
                     </div>
                 </div>
 
@@ -605,29 +606,26 @@
 
                 <!-- Sub-panel 2: Students Directory -->
                 <div id="subPanelStudents" class="user-subpanel" style="display:none;">
-                    <div class="table-toolbar user-table-toolbar">
-                        <div class="search-box">
-                            <input type="text" id="adminStudentSearchInput" class="form-control" placeholder="Search students by name, email, room, or block..." />
+                    <div class="user-table-toolbar" style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+                        <div class="search-box" style="flex:1; min-width:240px;">
+                            <input type="text" id="adminStudentSearchInput" class="form-control" placeholder="Search students by name, email, registration number, or room..." />
+                        </div>
+                        <div style="min-width:180px;">
+                            <select id="adminStudentBlockFilter" class="form-control" aria-label="Filter by hostel block">
+                                <option value="">All Hostel Blocks</option>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                                <option value="D">Block D</option>
+                                <option value="E">Block E</option>
+                                <option value="F">Block F</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="data-table" id="adminStudentsTable">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Email</th>
-                                    <th>Hostel Block</th>
-                                    <th>Room No</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminStudentsTableBody">
-                                <tr><td colspan="6" class="text-center">Loading students...</td></tr>
-                            </tbody>
-                        </table>
+                    <div id="adminStudentList" class="staff-grid">
+                        <div class="loading">Loading student directory...</div>
                     </div>
-                    <div id="studentPaginationContainer"></div>
+                    <div id="studentPaginationContainer" style="margin-top:16px;"></div>
                 </div>
             </div>
         </section>
@@ -1175,6 +1173,65 @@
             </div>
         </div>
 
+        <!-- Admin Add Student Modal -->
+        <div id="adminAddStudentModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="addStudentModalTitle">
+            <div class="modal-overlay" id="addStudentOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeAddStudentModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="addStudentModalTitle">Add New Student</h3>
+                </div>
+                <div id="addStudentFormError" class="field-error alert-error" style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:6px; background:#FEE2E2; color:#991B1B; font-size:0.875rem;"></div>
+                <form id="adminAddStudentForm" class="modal-form">
+                    <div class="form-group">
+                        <label for="addStudentName">Full Name <span class="required-star">*</span></label>
+                        <input type="text" id="addStudentName" class="form-control" placeholder="e.g. Ramesh Kumar" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStudentEmail">VIT Email <span class="required-star">*</span></label>
+                        <input type="email" id="addStudentEmail" class="form-control" placeholder="e.g. ramesh.k2021@vitstudent.ac.in" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStudentRegNo">Registration Number <span class="required-star">*</span></label>
+                        <input type="text" id="addStudentRegNo" class="form-control" placeholder="e.g. 21BCE1045" pattern="^[0-9]{2}[A-Za-z]{3}[0-9]{4}$" title="e.g. 21BCE1045" required />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="addStudentBlock">Hostel Block <span class="required-star">*</span></label>
+                            <select id="addStudentBlock" class="form-control" required>
+                                <option value="">Select Block</option>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                                <option value="D">Block D</option>
+                                <option value="E">Block E</option>
+                                <option value="F">Block F</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="addStudentRoom">Room Number <span class="required-star">*</span></label>
+                            <input type="text" id="addStudentRoom" class="form-control" placeholder="e.g. 204" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="addStudentPhone">Phone Number <span style="font-size:0.8rem; color:var(--grey);">(Optional)</span></label>
+                        <input type="tel" id="addStudentPhone" class="form-control" placeholder="e.g. +91 9876543210" />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStudentPassword">Temporary Password</label>
+                        <input type="password" id="addStudentPassword" class="form-control" placeholder="Min 6 characters (default: password123)" minlength="6" />
+                        <div style="font-size:0.8rem; color:var(--grey); margin-top:4px;">
+                            Student will be forced to change this temporary password on their first login.
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelAddStudentBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveAddStudentBtn">Create Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Admin Edit Student Modal -->
         <div id="adminEditStudentModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="editStudentModalTitle">
             <div class="modal-overlay" id="editStudentOverlay"></div>
@@ -1183,25 +1240,41 @@
                 <div class="modal-header">
                     <h3 id="editStudentModalTitle">Edit Student Profile</h3>
                 </div>
+                <div id="editStudentFormError" class="field-error alert-error" style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:6px; background:#FEE2E2; color:#991B1B; font-size:0.875rem;"></div>
                 <form id="adminEditStudentForm" class="modal-form">
                     <input type="hidden" id="editStudentUserId" />
                     <div class="form-group">
-                        <label for="editStudentName">Full Name</label>
+                        <label for="editStudentName">Full Name <span class="required-star">*</span></label>
                         <input type="text" id="editStudentName" class="form-control" required />
                     </div>
                     <div class="form-group">
-                        <label for="editStudentEmail">Email (Read-Only)</label>
-                        <input type="email" id="editStudentEmail" class="form-control" disabled readonly />
+                        <label for="editStudentEmail">VIT Email <span class="required-star">*</span></label>
+                        <input type="email" id="editStudentEmail" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStudentRegNo">Registration Number <span class="required-star">*</span></label>
+                        <input type="text" id="editStudentRegNo" class="form-control" pattern="^[0-9]{2}[A-Za-z]{3}[0-9]{4}$" title="e.g. 21BCE1045" required />
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editStudentBlock">Hostel Block</label>
-                            <input type="text" id="editStudentBlock" class="form-control" placeholder="e.g. A" maxlength="2" required />
+                            <label for="editStudentBlock">Hostel Block <span class="required-star">*</span></label>
+                            <select id="editStudentBlock" class="form-control" required>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                                <option value="D">Block D</option>
+                                <option value="E">Block E</option>
+                                <option value="F">Block F</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label for="editStudentRoom">Room Number</label>
+                            <label for="editStudentRoom">Room Number <span class="required-star">*</span></label>
                             <input type="text" id="editStudentRoom" class="form-control" placeholder="e.g. 204" required />
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStudentPhone">Phone Number <span style="font-size:0.8rem; color:var(--grey);">(Optional)</span></label>
+                        <input type="tel" id="editStudentPhone" class="form-control" />
                     </div>
                     <div class="form-group" style="margin-top: 0.5rem;">
                         <label class="toggle-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
@@ -1212,6 +1285,102 @@
                     <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
                         <button type="button" class="btn btn-secondary" id="cancelEditStudentBtn">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="saveEditStudentBtn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Change Room Modal -->
+        <div id="adminChangeRoomModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="changeRoomModalTitle">
+            <div class="modal-overlay" id="changeRoomOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeChangeRoomModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="changeRoomModalTitle">Change Student Room</h3>
+                </div>
+                <div id="changeRoomFormError" class="field-error alert-error" style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:6px; background:#FEE2E2; color:#991B1B; font-size:0.875rem;"></div>
+                <form id="adminChangeRoomForm" class="modal-form">
+                    <input type="hidden" id="changeRoomUserId" />
+                    <div style="font-size:0.92rem; margin-bottom:14px; color:var(--text-secondary); line-height:1.4;">
+                        Student: <strong id="changeRoomStudentName" style="color:var(--text-primary);">-</strong><br>
+                        Current Location: Block <strong id="changeRoomCurrentBlock">-</strong>, Room <strong id="changeRoomCurrentNumber">-</strong>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="changeRoomBlock">New Hostel Block <span class="required-star">*</span></label>
+                            <select id="changeRoomBlock" class="form-control" required>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                                <option value="D">Block D</option>
+                                <option value="E">Block E</option>
+                                <option value="F">Block F</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="changeRoomNumber">New Room Number <span class="required-star">*</span></label>
+                            <input type="text" id="changeRoomNumber" class="form-control" placeholder="e.g. 305" required />
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="cancelChangeRoomBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveChangeRoomBtn">Update Room</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Deactivate Student Confirmation Modal -->
+        <div id="adminDeactivateStudentModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="deactivateStudentModalTitle">
+            <div class="modal-overlay" id="deactivateStudentOverlay"></div>
+            <div class="modal-content modal-md">
+                <button type="button" class="modal-close" id="closeDeactivateStudentModal" aria-label="Close modal">✕</button>
+                <div class="modal-header">
+                    <h3 id="deactivateStudentModalTitle">Confirm Student Deactivation</h3>
+                </div>
+                <input type="hidden" id="deactivateStudentUserId" />
+                <p style="margin: 0 0 12px 0; font-size: 0.95rem;">
+                    Are you sure you want to deactivate <strong id="deactivateStudentName"></strong> (<span id="deactivateStudentEmail"></span>)?
+                </p>
+                <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:6px; padding:12px 14px; margin-bottom:16px; font-size:0.875rem; color:#991B1B;">
+                    <div><strong>Soft Delete Notice:</strong> The student will be prevented from logging in. Their profile, complaint history, and audit trail will remain intact.</div>
+                    <div style="margin-top:6px; font-size:0.9rem;">
+                        Active / Open Complaints: <strong id="deactivateStudentOpenCount" style="color:#DC2626; font-size:1.05rem;">0</strong>
+                    </div>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" class="btn btn-secondary" id="cancelDeactivateStudentBtn">Cancel</button>
+                    <button type="button" class="btn btn-outline danger" id="confirmDeactivateStudentBtn">Deactivate Student</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Force Password Change Modal (First Login) -->
+        <div id="forcePasswordChangeModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="forcePasswordModalTitle">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-md">
+                <div class="modal-header">
+                    <h3 id="forcePasswordModalTitle">Password Change Required</h3>
+                </div>
+                <div id="forcePasswordError" class="field-error alert-error" style="display:none; margin-bottom:12px; padding:8px 12px; border-radius:6px; background:#FEE2E2; color:#991B1B; font-size:0.875rem;"></div>
+                <p style="margin-bottom:14px; font-size:0.9rem; color:var(--text-secondary);">
+                    Your account was provisioned with a temporary password. You must set a new password before accessing HCMS.
+                </p>
+                <form id="forcePasswordChangeForm" class="modal-form">
+                    <div class="form-group">
+                        <label for="forceCurrentPassword">Current / Temporary Password <span class="required-star">*</span></label>
+                        <input type="password" id="forceCurrentPassword" class="form-control" placeholder="Enter current temporary password" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="forceNewPassword">New Password <span class="required-star">*</span></label>
+                        <input type="password" id="forceNewPassword" class="form-control" placeholder="Minimum 6 characters" minlength="6" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="forceConfirmPassword">Confirm New Password <span class="required-star">*</span></label>
+                        <input type="password" id="forceConfirmPassword" class="form-control" placeholder="Re-enter new password" minlength="6" required />
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary" id="saveForcePasswordBtn">Set New Password &amp; Continue</button>
                     </div>
                 </form>
             </div>

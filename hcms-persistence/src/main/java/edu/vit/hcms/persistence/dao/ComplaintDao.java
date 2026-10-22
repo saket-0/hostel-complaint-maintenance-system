@@ -738,6 +738,53 @@ public class ComplaintDao {
         }
     }
 
+    /**
+     * Returns a map of studentId to active complaint counts (NEW, ASSIGNED, IN_PROGRESS, REOPENED).
+     */
+    public Map<Long, Long> studentActiveComplaintCounts() {
+        String sql = """
+                SELECT student_id, COUNT(*) as cnt
+                FROM complaints
+                WHERE status IN ('NEW', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED')
+                GROUP BY student_id
+                """;
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            Map<Long, Long> map = new HashMap<>();
+            while (rs.next()) {
+                map.put(rs.getLong("student_id"), rs.getLong("cnt"));
+            }
+            return map;
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to count student active complaints", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Counts active complaints for a specific student.
+     */
+    public long countActiveComplaintsByStudentId(Long studentId) {
+        if (studentId == null) return 0;
+        String sql = """
+                SELECT COUNT(*) FROM complaints
+                WHERE student_id = ? AND status IN ('NEW', 'ASSIGNED', 'IN_PROGRESS', 'REOPENED')
+                """;
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to count active complaints for student: " + studentId, e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
     @FunctionalInterface
     private interface PreparedStatementSetter {
         void set(PreparedStatement ps) throws SQLException;

@@ -21,6 +21,7 @@ public abstract class User {
     private String passwordHash;
     private Role role;
     private boolean active;
+    private boolean forcePasswordChange;
     private LocalDateTime createdAt;
 
     // Static initialization block: logs class loading (demonstrates static blocks)
@@ -155,6 +156,14 @@ public abstract class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isForcePasswordChange() {
+        return forcePasswordChange;
+    }
+
+    public void setForcePasswordChange(boolean forcePasswordChange) {
+        this.forcePasswordChange = forcePasswordChange;
     }
 
     @Override

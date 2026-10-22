@@ -2715,8 +2715,9 @@ let currentStaff = [];
 let currentStudents = [];
 const studentState = {
     q: '',
+    block: '',
     page: 0,
-    size: 10
+    size: 12
 };
 
 export function loadUserManagementView() {
@@ -2733,6 +2734,8 @@ export function setupUserManagement() {
     const tabStudentSub = document.getElementById('tabStudentSub');
     const subPanelStaff = document.getElementById('subPanelStaff');
     const subPanelStudents = document.getElementById('subPanelStudents');
+    const btnAdminAddStaff = document.getElementById('btnAdminAddStaff');
+    const btnAdminAddStudent = document.getElementById('btnAdminAddStudent');
 
     if (tabStaffSub && tabStudentSub && subPanelStaff && subPanelStudents) {
         tabStaffSub.onclick = () => {
@@ -2740,6 +2743,8 @@ export function setupUserManagement() {
             tabStudentSub.classList.remove('active');
             subPanelStaff.style.display = 'block';
             subPanelStudents.style.display = 'none';
+            if (btnAdminAddStaff) btnAdminAddStaff.style.display = 'inline-flex';
+            if (btnAdminAddStudent) btnAdminAddStudent.style.display = 'none';
         };
 
         tabStudentSub.onclick = () => {
@@ -2747,9 +2752,9 @@ export function setupUserManagement() {
             tabStaffSub.classList.remove('active');
             subPanelStaff.style.display = 'none';
             subPanelStudents.style.display = 'block';
-            if (currentStudents.length === 0) {
-                loadStudentList();
-            }
+            if (btnAdminAddStaff) btnAdminAddStaff.style.display = 'none';
+            if (btnAdminAddStudent) btnAdminAddStudent.style.display = 'inline-flex';
+            loadStudentList();
         };
     }
 
@@ -2847,43 +2852,251 @@ export function setupUserManagement() {
         };
     }
 
+    // Add Student modal listeners
+    const addStudentBtn = document.getElementById('btnAdminAddStudent');
+    const addStudentModal = document.getElementById('adminAddStudentModal');
+    const closeAddStudentModal = document.getElementById('closeAddStudentModal');
+    const cancelAddStudentBtn = document.getElementById('cancelAddStudentBtn');
+    const addStudentOverlay = document.getElementById('addStudentOverlay');
+    const addStudentForm = document.getElementById('adminAddStudentForm');
+    const addStudentFormError = document.getElementById('addStudentFormError');
+
+    const closeAddStudent = () => {
+        if (addStudentModal) addStudentModal.style.display = 'none';
+        if (addStudentFormError) addStudentFormError.style.display = 'none';
+    };
+
+    if (addStudentBtn && addStudentModal) {
+        addStudentBtn.onclick = () => {
+            if (addStudentForm) addStudentForm.reset();
+            if (addStudentFormError) addStudentFormError.style.display = 'none';
+            addStudentModal.style.display = 'flex';
+        };
+    }
+    if (closeAddStudentModal) closeAddStudentModal.onclick = closeAddStudent;
+    if (cancelAddStudentBtn) cancelAddStudentBtn.onclick = closeAddStudent;
+    if (addStudentOverlay) addStudentOverlay.onclick = closeAddStudent;
+    if (addStudentForm) {
+        addStudentForm.onsubmit = async (e) => {
+            e.preventDefault();
+            if (addStudentFormError) addStudentFormError.style.display = 'none';
+
+            const name = document.getElementById('addStudentName').value.trim();
+            const email = document.getElementById('addStudentEmail').value.trim();
+            const registrationNumber = document.getElementById('addStudentRegNo').value.trim().toUpperCase();
+            const hostelBlock = document.getElementById('addStudentBlock').value.trim().toUpperCase();
+            const roomNumber = document.getElementById('addStudentRoom').value.trim();
+            const phone = document.getElementById('addStudentPhone').value.trim();
+            const password = document.getElementById('addStudentPassword').value.trim();
+
+            if (!name || !email || !registrationNumber || !hostelBlock || !roomNumber) {
+                if (addStudentFormError) {
+                    addStudentFormError.textContent = 'Please fill in all required fields (Name, VIT Email, Reg No, Block, Room).';
+                    addStudentFormError.style.display = 'block';
+                }
+                return;
+            }
+
+            // Client-side regex checks
+            const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+            if (!emailRegex.test(email)) {
+                if (addStudentFormError) {
+                    addStudentFormError.textContent = 'Please enter a valid email address.';
+                    addStudentFormError.style.display = 'block';
+                }
+                return;
+            }
+
+            const regNoRegex = /^[0-9]{2}[A-Za-z]{3}[0-9]{4}$/;
+            if (!regNoRegex.test(registrationNumber)) {
+                if (addStudentFormError) {
+                    addStudentFormError.textContent = 'Registration number must match VIT format (e.g. 21BCE1045).';
+                    addStudentFormError.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                await apiRequest('/students', {
+                    method: 'POST',
+                    body: {
+                        name,
+                        email,
+                        registrationNumber,
+                        hostelBlock,
+                        roomNumber,
+                        phone: phone || null,
+                        temporaryPassword: password || 'password123'
+                    }
+                });
+                showToast('Student created successfully! Forced password change enabled.', 'success');
+                closeAddStudent();
+                loadStudentList();
+            } catch (err) {
+                if (addStudentFormError) {
+                    addStudentFormError.textContent = err.message || 'Failed to create student.';
+                    addStudentFormError.style.display = 'block';
+                } else {
+                    showToast(err.message, 'error');
+                }
+            }
+        };
+    }
+
     // Edit Student modal listeners
     const editStudentModal = document.getElementById('adminEditStudentModal');
     const closeEditStudentModal = document.getElementById('closeEditStudentModal');
     const cancelEditStudentBtn = document.getElementById('cancelEditStudentBtn');
     const editStudentOverlay = document.getElementById('editStudentOverlay');
     const editStudentForm = document.getElementById('adminEditStudentForm');
+    const editStudentFormError = document.getElementById('editStudentFormError');
 
-    const closeEditStudent = () => { if (editStudentModal) editStudentModal.style.display = 'none'; };
+    const closeEditStudent = () => {
+        if (editStudentModal) editStudentModal.style.display = 'none';
+        if (editStudentFormError) editStudentFormError.style.display = 'none';
+    };
     if (closeEditStudentModal) closeEditStudentModal.onclick = closeEditStudent;
     if (cancelEditStudentBtn) cancelEditStudentBtn.onclick = closeEditStudent;
     if (editStudentOverlay) editStudentOverlay.onclick = closeEditStudent;
     if (editStudentForm) {
         editStudentForm.onsubmit = async (e) => {
             e.preventDefault();
+            if (editStudentFormError) editStudentFormError.style.display = 'none';
+
             const userId = document.getElementById('editStudentUserId').value;
             const name = document.getElementById('editStudentName').value.trim();
+            const email = document.getElementById('editStudentEmail').value.trim();
+            const registrationNumber = document.getElementById('editStudentRegNo').value.trim().toUpperCase();
             const hostelBlock = document.getElementById('editStudentBlock').value.trim().toUpperCase();
             const roomNumber = document.getElementById('editStudentRoom').value.trim();
+            const phone = document.getElementById('editStudentPhone').value.trim();
             const active = document.getElementById('editStudentActive').checked;
 
-            if (!name || !hostelBlock || !roomNumber) {
-                showToast('Name, block, and room number are required', 'error');
+            if (!name || !email || !registrationNumber || !hostelBlock || !roomNumber) {
+                if (editStudentFormError) {
+                    editStudentFormError.textContent = 'Name, email, registration number, block, and room are required.';
+                    editStudentFormError.style.display = 'block';
+                }
                 return;
             }
 
             try {
-                await apiRequest(`/admin/users/${userId}`, {
+                await apiRequest(`/students/${userId}`, {
                     method: 'PUT',
                     body: {
                         name,
+                        email,
+                        registrationNumber,
                         hostelBlock,
                         roomNumber,
+                        phone: phone || null,
                         active
                     }
                 });
                 showToast('Student profile updated successfully!', 'success');
                 closeEditStudent();
+                loadStudentList();
+            } catch (err) {
+                if (editStudentFormError) {
+                    editStudentFormError.textContent = err.message || 'Failed to update student.';
+                    editStudentFormError.style.display = 'block';
+                } else {
+                    showToast(err.message, 'error');
+                }
+            }
+        };
+    }
+
+    // Change Room modal listeners
+    const changeRoomModal = document.getElementById('adminChangeRoomModal');
+    const closeChangeRoomModal = document.getElementById('closeChangeRoomModal');
+    const cancelChangeRoomBtn = document.getElementById('cancelChangeRoomBtn');
+    const changeRoomOverlay = document.getElementById('changeRoomOverlay');
+    const changeRoomForm = document.getElementById('adminChangeRoomForm');
+    const changeRoomFormError = document.getElementById('changeRoomFormError');
+
+    const closeChangeRoom = () => {
+        if (changeRoomModal) changeRoomModal.style.display = 'none';
+        if (changeRoomFormError) changeRoomFormError.style.display = 'none';
+    };
+    if (closeChangeRoomModal) closeChangeRoomModal.onclick = closeChangeRoom;
+    if (cancelChangeRoomBtn) cancelChangeRoomBtn.onclick = closeChangeRoom;
+    if (changeRoomOverlay) changeRoomOverlay.onclick = closeChangeRoom;
+    if (changeRoomForm) {
+        changeRoomForm.onsubmit = async (e) => {
+            e.preventDefault();
+            if (changeRoomFormError) changeRoomFormError.style.display = 'none';
+
+            const userId = parseInt(document.getElementById('changeRoomUserId').value, 10);
+            const newBlock = document.getElementById('changeRoomBlock').value.trim().toUpperCase();
+            const newRoom = document.getElementById('changeRoomNumber').value.trim();
+
+            if (!newBlock || !newRoom) {
+                if (changeRoomFormError) {
+                    changeRoomFormError.textContent = 'Both hostel block and room number are required.';
+                    changeRoomFormError.style.display = 'block';
+                }
+                return;
+            }
+
+            const student = currentStudents.find(s => s.userId === userId);
+            if (!student) {
+                showToast('Student not found', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest(`/students/${userId}`, {
+                    method: 'PUT',
+                    body: {
+                        name: student.name,
+                        email: student.email,
+                        registrationNumber: student.registrationNumber,
+                        phone: student.phone,
+                        hostelBlock: newBlock,
+                        roomNumber: newRoom,
+                        active: student.active !== false
+                    }
+                });
+                showToast(`Room changed to Block ${newBlock}-${newRoom} successfully!`, 'success');
+                closeChangeRoom();
+                loadStudentList();
+            } catch (err) {
+                if (changeRoomFormError) {
+                    changeRoomFormError.textContent = err.message || 'Failed to update student room.';
+                    changeRoomFormError.style.display = 'block';
+                } else {
+                    showToast(err.message, 'error');
+                }
+            }
+        };
+    }
+
+    // Deactivate Student modal listeners
+    const deactivateModal = document.getElementById('adminDeactivateStudentModal');
+    const closeDeactivateModal = document.getElementById('closeDeactivateStudentModal');
+    const cancelDeactivateBtn = document.getElementById('cancelDeactivateStudentBtn');
+    const deactivateOverlay = document.getElementById('deactivateStudentOverlay');
+    const confirmDeactivateBtn = document.getElementById('confirmDeactivateStudentBtn');
+
+    const closeDeactivate = () => {
+        if (deactivateModal) deactivateModal.style.display = 'none';
+    };
+    if (closeDeactivateModal) closeDeactivateModal.onclick = closeDeactivate;
+    if (cancelDeactivateBtn) cancelDeactivateBtn.onclick = closeDeactivate;
+    if (deactivateOverlay) deactivateOverlay.onclick = closeDeactivate;
+    if (confirmDeactivateBtn) {
+        confirmDeactivateBtn.onclick = async () => {
+            const userId = document.getElementById('deactivateStudentUserId').value;
+            if (!userId) return;
+
+            try {
+                await apiRequest(`/students/${userId}/status`, {
+                    method: 'PATCH',
+                    body: { active: false }
+                });
+                showToast('Student deactivated successfully', 'success');
+                closeDeactivate();
                 loadStudentList();
             } catch (err) {
                 showToast(err.message, 'error');
@@ -2899,6 +3112,16 @@ export function setupUserManagement() {
             studentState.page = 0;
             loadStudentList();
         }, 300);
+    }
+
+    // Student block filter
+    const studentBlockFilter = document.getElementById('adminStudentBlockFilter');
+    if (studentBlockFilter) {
+        studentBlockFilter.onchange = () => {
+            studentState.block = studentBlockFilter.value.trim();
+            studentState.page = 0;
+            loadStudentList();
+        };
     }
 }
 
@@ -3028,107 +3251,150 @@ export async function loadStaffList() {
 }
 
 export async function loadStudentList() {
-    const tbody = document.getElementById('adminStudentsTableBody');
-    if (!tbody) return;
+    const grid = document.getElementById('adminStudentList');
+    if (!grid) return;
 
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Loading students...</td></tr>';
+    grid.innerHTML = '<div class="loading">Loading student directory...</div>';
 
     try {
-        const queryParams = new URLSearchParams({
-            role: 'STUDENT',
-            q: studentState.q,
-            page: studentState.page,
-            size: studentState.size
-        });
-        const data = await apiRequest(`/admin/users?${queryParams.toString()}`);
-        const students = (data && data.users) || [];
-        const total = data ? data.total : 0;
+        const queryParams = new URLSearchParams();
+        if (studentState.q) queryParams.set('q', studentState.q);
+        if (studentState.block) queryParams.set('block', studentState.block);
+        queryParams.set('page', studentState.page || 0);
+        queryParams.set('size', studentState.size || 12);
+
+        const data = await apiRequest(`/students?${queryParams.toString()}`);
+        const students = (data && data.students) || [];
+        const total = (data && typeof data.total === 'number') ? data.total : students.length;
         currentStudents = students;
 
         const countEl = document.getElementById('countStudents');
         if (countEl) countEl.textContent = total;
 
         if (students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 24px;">No students found matching your search.</td></tr>';
+            grid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1; padding: 24px;">No students found matching your criteria.</p>';
             renderPagination(0, studentState, 'studentPaginationContainer', loadStudentList);
             return;
         }
 
         let html = '';
         students.forEach(st => {
-            const block = escapeHtml(st.hostelBlock || '—');
-            const room = escapeHtml(st.roomNumber || '—');
             const isActive = st.active !== false;
             const statusBadge = isActive
-                ? '<span class="badge badge-success" style="font-size:0.75rem;">Active</span>'
-                : '<span class="badge badge-inactive" style="font-size:0.75rem;">Inactive</span>';
+                ? '<span class="status-badge" style="background:#D1FAE5; color:#065F46; font-weight:700;">ACTIVE</span>'
+                : '<span class="status-badge" style="background:#FEE2E2; color:#991B1B; font-weight:700;">DEACTIVATED</span>';
+            const openCount = st.activeComplaints || 0;
+            const complaintsBadge = openCount > 0
+                ? `<span class="badge" style="background:#FEF3C7; color:#92400E; font-weight:700;">${openCount} Active</span>`
+                : `<span class="badge" style="background:#F1F5F9; color:#475569;">0 Active</span>`;
 
             html += `
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div class="user-avatar-sm" style="width:28px; height:28px; border-radius:50%; background:#00B4D8; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">
-                                ${(st.name || 'S').charAt(0).toUpperCase()}
-                            </div>
-                            <strong>${escapeHtml(st.name)}</strong>
+                <div class="staff-card ${!isActive ? 'staff-card-inactive' : ''}">
+                    <div class="staff-card-header">
+                        <div>
+                            <h4 style="margin: 0; font-size: 1.05rem;">${escapeHtml(st.name)}</h4>
+                            <div style="font-size: 0.82rem; color: var(--grey); margin-top: 2px;">${escapeHtml(st.email)}</div>
                         </div>
-                    </td>
-                    <td>${escapeHtml(st.email)}</td>
-                    <td><span class="meta-tag">Block ${block}</span></td>
-                    <td><span class="meta-tag">Room ${room}</span></td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <div style="display: flex; gap: 6px;">
-                            <button type="button" class="btn btn-outline btn-sm btn-edit-student" data-user-id="${st.userId}">Edit</button>
-                            <button type="button" class="btn btn-outline btn-sm ${isActive ? 'danger' : ''} btn-toggle-student-active" data-user-id="${st.userId}" data-active="${isActive}">
-                                ${isActive ? 'Deactivate' : 'Activate'}
-                            </button>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${statusBadge}
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                    <div class="staff-card-body" style="margin: 12px 0; font-size: 0.9rem;">
+                        <p style="margin: 4px 0;"><strong>Reg No:</strong> <span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:700;">${escapeHtml(st.registrationNumber || '—')}</span></p>
+                        <p style="margin: 4px 0;"><strong>Hostel &amp; Room:</strong> Block ${escapeHtml(st.hostelBlock || '—')}, Room ${escapeHtml(st.roomNumber || '—')}</p>
+                        <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(st.phone || '—')}</p>
+                        <p style="margin: 4px 0;"><strong>Active Complaints:</strong> ${complaintsBadge}</p>
+                    </div>
+                    <div class="staff-card-actions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                        <button type="button" class="btn btn-outline btn-sm btn-edit-student" data-user-id="${st.userId}">Edit</button>
+                        <button type="button" class="btn btn-outline btn-sm btn-change-room-student" data-user-id="${st.userId}">Change Room</button>
+                        <button type="button" class="btn btn-outline btn-sm ${isActive ? 'danger' : ''} btn-toggle-student-active" data-user-id="${st.userId}" data-active="${isActive}">
+                            ${isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                    </div>
+                </div>
             `;
         });
-        tbody.innerHTML = html;
+        grid.innerHTML = html;
 
-        // Wire edit & deactivate buttons
-        tbody.querySelectorAll('.btn-edit-student').forEach(btn => {
+        // Wire student action buttons
+        grid.querySelectorAll('.btn-edit-student').forEach(btn => {
             btn.onclick = () => {
                 const uId = parseInt(btn.getAttribute('data-user-id'), 10);
                 const s = currentStudents.find(st => st.userId === uId);
                 if (s) {
                     const modal = document.getElementById('adminEditStudentModal');
+                    const errEl = document.getElementById('editStudentFormError');
+                    if (errEl) errEl.style.display = 'none';
                     if (!modal) return;
                     document.getElementById('editStudentUserId').value = s.userId;
                     document.getElementById('editStudentName').value = s.name || '';
                     document.getElementById('editStudentEmail').value = s.email || '';
-                    document.getElementById('editStudentBlock').value = s.hostelBlock || '';
+                    document.getElementById('editStudentRegNo').value = s.registrationNumber || '';
+                    document.getElementById('editStudentBlock').value = s.hostelBlock || 'A';
                     document.getElementById('editStudentRoom').value = s.roomNumber || '';
+                    document.getElementById('editStudentPhone').value = s.phone || '';
                     document.getElementById('editStudentActive').checked = s.active !== false;
                     modal.style.display = 'flex';
                 }
             };
         });
 
-        tbody.querySelectorAll('.btn-toggle-student-active').forEach(btn => {
+        grid.querySelectorAll('.btn-change-room-student').forEach(btn => {
+            btn.onclick = () => {
+                const uId = parseInt(btn.getAttribute('data-user-id'), 10);
+                const s = currentStudents.find(st => st.userId === uId);
+                if (s) {
+                    const modal = document.getElementById('adminChangeRoomModal');
+                    const errEl = document.getElementById('changeRoomFormError');
+                    if (errEl) errEl.style.display = 'none';
+                    if (!modal) return;
+                    document.getElementById('changeRoomUserId').value = s.userId;
+                    document.getElementById('changeRoomStudentName').textContent = s.name || 'Student';
+                    document.getElementById('changeRoomCurrentBlock').textContent = s.hostelBlock || '—';
+                    document.getElementById('changeRoomCurrentNumber').textContent = s.roomNumber || '—';
+                    document.getElementById('changeRoomBlock').value = s.hostelBlock || 'A';
+                    document.getElementById('changeRoomNumber').value = s.roomNumber || '';
+                    modal.style.display = 'flex';
+                }
+            };
+        });
+
+        grid.querySelectorAll('.btn-toggle-student-active').forEach(btn => {
             btn.onclick = async () => {
                 const uId = parseInt(btn.getAttribute('data-user-id'), 10);
                 const isActive = btn.getAttribute('data-active') === 'true';
-                try {
-                    await apiRequest(`/admin/users/${uId}`, {
-                        method: 'PUT',
-                        body: { active: !isActive }
-                    });
-                    showToast(`Student ${!isActive ? 'activated' : 'deactivated'} successfully`, 'success');
-                    loadStudentList();
-                } catch (err) {
-                    showToast(err.message, 'error');
+                const s = currentStudents.find(st => st.userId === uId);
+
+                if (isActive) {
+                    // Open confirmation modal showing open complaints count
+                    const modal = document.getElementById('adminDeactivateStudentModal');
+                    if (modal && s) {
+                        document.getElementById('deactivateStudentUserId').value = s.userId;
+                        document.getElementById('deactivateStudentName').textContent = s.name || 'Student';
+                        document.getElementById('deactivateStudentEmail').textContent = s.email || '';
+                        document.getElementById('deactivateStudentOpenCount').textContent = s.activeComplaints || 0;
+                        modal.style.display = 'flex';
+                    }
+                } else {
+                    // Direct activate
+                    try {
+                        await apiRequest(`/students/${uId}/status`, {
+                            method: 'PATCH',
+                            body: { active: true }
+                        });
+                        showToast(`Student account activated successfully`, 'success');
+                        loadStudentList();
+                    } catch (err) {
+                        showToast(err.message, 'error');
+                    }
                 }
             };
         });
 
         renderPagination(total, studentState, 'studentPaginationContainer', loadStudentList);
     } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red" style="padding: 20px;">Failed to load students: ${escapeHtml(err.message)}</td></tr>`;
+        grid.innerHTML = `<div class="toast toast-error">${escapeHtml(err.message)}</div>`;
     }
 }
 

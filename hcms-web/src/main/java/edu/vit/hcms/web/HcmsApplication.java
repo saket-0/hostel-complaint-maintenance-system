@@ -92,6 +92,7 @@ public class HcmsApplication {
         AuthController authController = new AuthController(authService, userDao);
         ComplaintController complaintController = new ComplaintController(complaintManager, supportDao, userDao);
         AdminController adminController = new AdminController(complaintManager, complaintDao, userDao, analyticsService, supportDao, userManager);
+        StudentAdminController studentAdminController = new StudentAdminController(userDao, complaintDao);
         UserController userController = new UserController(userManager);
         StaffController staffController = new StaffController(complaintManager, userDao, supportDao);
         NotificationController notificationController = new NotificationController(notificationService);
@@ -278,6 +279,48 @@ public class HcmsApplication {
             authFilter.requireRole(ctx, "ADMIN");
             adminController.updateStaff(ctx);
         });
+
+        // ---- Student Directory Admin Routes ----
+        io.javalin.http.Handler listStudentsHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            studentAdminController.listStudents(ctx);
+        };
+        io.javalin.http.Handler getStudentHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            studentAdminController.getStudent(ctx);
+        };
+        io.javalin.http.Handler createStudentHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            studentAdminController.createStudent(ctx);
+        };
+        io.javalin.http.Handler updateStudentHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            studentAdminController.updateStudent(ctx);
+        };
+        io.javalin.http.Handler updateStudentStatusHandler = ctx -> {
+            authFilter.requireRole(ctx, "ADMIN");
+            studentAdminController.updateStatus(ctx);
+        };
+
+        app.get("/api/students", listStudentsHandler);
+        app.get("/api/v1/students", listStudentsHandler);
+        app.get("/api/v1/admin/students", listStudentsHandler);
+
+        app.get("/api/students/{id}", getStudentHandler);
+        app.get("/api/v1/students/{id}", getStudentHandler);
+        app.get("/api/v1/admin/students/{id}", getStudentHandler);
+
+        app.post("/api/students", createStudentHandler);
+        app.post("/api/v1/students", createStudentHandler);
+        app.post("/api/v1/admin/students", createStudentHandler);
+
+        app.put("/api/students/{id}", updateStudentHandler);
+        app.put("/api/v1/students/{id}", updateStudentHandler);
+        app.put("/api/v1/admin/students/{id}", updateStudentHandler);
+
+        app.patch("/api/students/{id}/status", updateStudentStatusHandler);
+        app.patch("/api/v1/students/{id}/status", updateStudentStatusHandler);
+        app.patch("/api/v1/admin/students/{id}/status", updateStudentStatusHandler);
 
         // ---- Staff Routes ----
         app.get("/api/v1/staff/tasks", ctx -> {

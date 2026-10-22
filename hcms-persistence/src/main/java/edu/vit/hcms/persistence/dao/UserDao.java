@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,12 @@ public class UserDao {
                 Student s = new Student();
                 s.setRoomNumber(rs.getString("room_number"));
                 s.setHostelBlock(rs.getString("hostel_block"));
+                try {
+                    s.setRegistrationNumber(rs.getString("registration_number"));
+                } catch (SQLException ignored) {}
+                try {
+                    s.setPhone(rs.getString("phone"));
+                } catch (SQLException ignored) {}
                 user = s;
             }
             case ADMIN -> {
@@ -59,6 +66,9 @@ public class UserDao {
         user.setPasswordHash(rs.getString("password_hash"));
         user.setRole(role);
         user.setActive(rs.getBoolean("active"));
+        try {
+            user.setForcePasswordChange(rs.getBoolean("force_password_change"));
+        } catch (SQLException ignored) {}
         user.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         return user;
     };
@@ -68,8 +78,8 @@ public class UserDao {
     }
 
     private static final String SELECT_USER_WITH_JOINS = """
-            SELECT u.user_id, u.name, u.email, u.password_hash, u.role, u.active, u.created_at,
-                   s.room_number, s.hostel_block,
+            SELECT u.user_id, u.name, u.email, u.password_hash, u.role, u.active, u.force_password_change, u.created_at,
+                   s.room_number, s.hostel_block, s.registration_number, s.phone,
                    a.admin_role,
                    st.specialization, st.available AS staff_available
             FROM users u
@@ -87,7 +97,7 @@ public class UserDao {
      * @throws DuplicateEntryException if the email already exists
      */
     public User save(User user) {
-        String insertUser = "INSERT INTO users (name, email, password_hash, role, active) VALUES (?, ?, ?, ?, ?)";
+        String insertUser = "INSERT INTO users (name, email, password_hash, role, active, force_password_change) VALUES (?, ?, ?, ?, ?, ?)";
         Connection conn = txManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, user.getName());
@@ -95,6 +105,7 @@ public class UserDao {
             ps.setString(3, user.getPasswordHash());
             ps.setString(4, user.getRole().name());
             ps.setBoolean(5, user.isActive());
+            ps.setBoolean(6, user.isForcePasswordChange());
             ps.executeUpdate();
 
             try (ResultSet keys = ps.getGeneratedKeys()) {
@@ -108,7 +119,11 @@ public class UserDao {
             log.info("Saved user: {} ({})", user.getEmail(), user.getRole());
             return user;
         } catch (SQLException e) {
-            if (e.getMessage().contains("Duplicate entry")) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("uq_students_reg_no") || (user instanceof Student st && st.getRegistrationNumber() != null && msg.contains(st.getRegistrationNumber()))) {
+                throw new DuplicateEntryException("A student with registration number '" + (user instanceof Student st ? st.getRegistrationNumber() : "") + "' already exists");
+            }
+            if (msg.contains("Duplicate entry")) {
                 throw new DuplicateEntryException("A user with email '" + user.getEmail() + "' already exists");
             }
             throw new DataAccessException("Failed to save user", e);
@@ -120,10 +135,12 @@ public class UserDao {
     private void insertRoleSpecific(Connection conn, User user) throws SQLException {
         if (user instanceof Student s) {
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO students (student_id, room_number, hostel_block) VALUES (?, ?, ?)")) {
+                    "INSERT INTO students (student_id, room_number, hostel_block, registration_number, phone) VALUES (?, ?, ?, ?, ?)")) {
                 ps.setLong(1, user.getUserId());
                 ps.setString(2, s.getRoomNumber());
                 ps.setString(3, s.getHostelBlock());
+                ps.setString(4, s.getRegistrationNumber());
+                ps.setString(5, s.getPhone());
                 ps.executeUpdate();
             }
         } else if (user instanceof Admin a) {
@@ -255,7 +272,7 @@ public class UserDao {
      * Updates user password hash.
      */
     public void updatePassword(Long userId, String newPasswordHash) {
-        String sql = "UPDATE users SET password_hash = ? WHERE user_id = ?";
+        String sql = "UPDATE users SET password_hash = ?, force_password_change = FALSE WHERE user_id = ?";
         Connection conn = txManager.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, newPasswordHash);
@@ -288,23 +305,32 @@ public class UserDao {
     }
 
     /**
-     * Updates an existing user's base information (name, active) and role-specific fields.
+     * Updates an existing user's base information (name, active, email) and role-specific fields.
      *
      * @param user the user with updated fields
      */
     public void update(User user) {
-        String updateUser = "UPDATE users SET name = ?, active = ? WHERE user_id = ?";
+        String updateUser = "UPDATE users SET name = ?, active = ?, email = ?, force_password_change = ? WHERE user_id = ?";
         Connection conn = txManager.getConnection();
         try {
             try (PreparedStatement ps = conn.prepareStatement(updateUser)) {
                 ps.setString(1, user.getName());
                 ps.setBoolean(2, user.isActive());
-                ps.setLong(3, user.getUserId());
+                ps.setString(3, user.getEmail());
+                ps.setBoolean(4, user.isForcePasswordChange());
+                ps.setLong(5, user.getUserId());
                 ps.executeUpdate();
             }
             updateRoleSpecific(conn, user);
             log.info("Updated user: {} ({})", user.getEmail(), user.getRole());
         } catch (SQLException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("uq_students_reg_no") || (user instanceof Student st && st.getRegistrationNumber() != null && msg.contains(st.getRegistrationNumber()))) {
+                throw new DuplicateEntryException("A student with registration number '" + (user instanceof Student st ? st.getRegistrationNumber() : "") + "' already exists");
+            }
+            if (msg.contains("Duplicate entry")) {
+                throw new DuplicateEntryException("A user with email '" + user.getEmail() + "' already exists");
+            }
             throw new DataAccessException("Failed to update user: " + user.getUserId(), e);
         } finally {
             txManager.releaseConnection(conn);
@@ -314,17 +340,21 @@ public class UserDao {
     private void updateRoleSpecific(Connection conn, User user) throws SQLException {
         if (user instanceof Student s) {
             try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE students SET room_number = ?, hostel_block = ? WHERE student_id = ?")) {
+                    "UPDATE students SET room_number = ?, hostel_block = ?, registration_number = ?, phone = ? WHERE student_id = ?")) {
                 ps.setString(1, s.getRoomNumber());
                 ps.setString(2, s.getHostelBlock());
-                ps.setLong(3, user.getUserId());
+                ps.setString(3, s.getRegistrationNumber());
+                ps.setString(4, s.getPhone());
+                ps.setLong(5, user.getUserId());
                 int updated = ps.executeUpdate();
                 if (updated == 0) {
                     try (PreparedStatement ins = conn.prepareStatement(
-                            "INSERT INTO students (student_id, room_number, hostel_block) VALUES (?, ?, ?)")) {
+                            "INSERT INTO students (student_id, room_number, hostel_block, registration_number, phone) VALUES (?, ?, ?, ?, ?)")) {
                         ins.setLong(1, user.getUserId());
                         ins.setString(2, s.getRoomNumber());
                         ins.setString(3, s.getHostelBlock());
+                        ins.setString(4, s.getRegistrationNumber());
+                        ins.setString(5, s.getPhone());
                         ins.executeUpdate();
                     }
                 }
@@ -478,6 +508,145 @@ public class UserDao {
             }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to count users", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Finds a student by their unique registration number.
+     */
+    public Optional<Student> findByRegistrationNumber(String regNo) {
+        if (regNo == null || regNo.isBlank()) return Optional.empty();
+        String sql = SELECT_USER_WITH_JOINS + " WHERE s.registration_number = ?";
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, regNo.trim().toUpperCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    User u = USER_MAPPER.mapRow(rs);
+                    if (u instanceof Student s) {
+                        return Optional.of(s);
+                    }
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to find student by registration number", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Lists students matching search query and block filter.
+     */
+    public List<Student> findAllStudents(String query, String block, int offset, int limit) {
+        StringBuilder sql = new StringBuilder(SELECT_USER_WITH_JOINS);
+        sql.append(" WHERE u.role = 'STUDENT'");
+        List<Object> params = new ArrayList<>();
+
+        if (block != null && !block.isBlank()) {
+            sql.append(" AND s.hostel_block = ?");
+            params.add(block.trim().toUpperCase());
+        }
+
+        if (query != null && !query.isBlank()) {
+            sql.append(" AND (u.name LIKE ? OR u.email LIKE ? OR s.registration_number LIKE ? OR s.room_number LIKE ?)");
+            String like = "%" + query.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+
+        sql.append(" ORDER BY u.name ASC, u.user_id DESC LIMIT ? OFFSET ?");
+        params.add(Math.min(limit, 100));
+        params.add(Math.max(0, offset));
+
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof Integer intVal) {
+                    ps.setInt(i + 1, intVal);
+                } else {
+                    ps.setString(i + 1, p.toString());
+                }
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Student> students = new ArrayList<>();
+                while (rs.next()) {
+                    User u = USER_MAPPER.mapRow(rs);
+                    if (u instanceof Student s) {
+                        students.add(s);
+                    }
+                }
+                return students;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to find students", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Counts students matching search query and block filter.
+     */
+    public long countStudents(String query, String block) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(*) FROM users u
+                JOIN students s ON u.user_id = s.student_id
+                WHERE u.role = 'STUDENT'
+                """);
+        List<Object> params = new ArrayList<>();
+
+        if (block != null && !block.isBlank()) {
+            sql.append(" AND s.hostel_block = ?");
+            params.add(block.trim().toUpperCase());
+        }
+
+        if (query != null && !query.isBlank()) {
+            sql.append(" AND (u.name LIKE ? OR u.email LIKE ? OR s.registration_number LIKE ? OR s.room_number LIKE ?)");
+            String like = "%" + query.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setString(i + 1, params.get(i).toString());
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to count students", e);
+        } finally {
+            txManager.releaseConnection(conn);
+        }
+    }
+
+    /**
+     * Records a user audit history entry.
+     */
+    public void saveUserHistory(Long userId, String action, Long changedBy, String note) {
+        String sql = "INSERT INTO user_history (user_id, action, changed_by, note, changed_at) VALUES (?, ?, ?, ?, ?)";
+        Connection conn = txManager.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, userId);
+            ps.setString(2, action);
+            ps.setLong(3, changedBy);
+            ps.setString(4, note);
+            ps.setTimestamp(5, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+            ps.executeUpdate();
+            log.info("Recorded user audit: user={}, action={}, actor={}, note={}", userId, action, changedBy, note);
+        } catch (SQLException e) {
+            log.warn("Could not record user history for user {}: {}", userId, e.getMessage());
         } finally {
             txManager.releaseConnection(conn);
         }

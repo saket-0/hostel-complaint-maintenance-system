@@ -13,6 +13,8 @@ public class Student extends User {
 
     private String roomNumber;
     private String hostelBlock;
+    private String registrationNumber;
+    private String phone;
 
     /** Default constructor. */
     public Student() {
@@ -31,9 +33,19 @@ public class Student extends User {
      */
     public Student(Long userId, String name, String email, String passwordHash,
                    String roomNumber, String hostelBlock) {
+        this(userId, name, email, passwordHash, roomNumber, hostelBlock, null, null);
+    }
+
+    /**
+     * Extended constructor with registration number and phone.
+     */
+    public Student(Long userId, String name, String email, String passwordHash,
+                   String roomNumber, String hostelBlock, String registrationNumber, String phone) {
         super(userId, name, email, passwordHash, Role.STUDENT);
         this.roomNumber = roomNumber;
         this.hostelBlock = hostelBlock;
+        this.registrationNumber = registrationNumber;
+        this.phone = phone;
     }
 
     /**
@@ -41,9 +53,19 @@ public class Student extends User {
      */
     public Student(String name, String email, String passwordHash,
                    String roomNumber, String hostelBlock) {
+        this(name, email, passwordHash, roomNumber, hostelBlock, null, null);
+    }
+
+    /**
+     * Constructor without userId with registration number and phone.
+     */
+    public Student(String name, String email, String passwordHash,
+                   String roomNumber, String hostelBlock, String registrationNumber, String phone) {
         super(name, email, passwordHash, Role.STUDENT);
         this.roomNumber = roomNumber;
         this.hostelBlock = hostelBlock;
+        this.registrationNumber = registrationNumber;
+        this.phone = phone;
     }
 
     @Override
@@ -78,5 +100,21 @@ public class Student extends User {
 
     public void setHostelBlock(String hostelBlock) {
         this.hostelBlock = hostelBlock;
+    }
+
+    public String getRegistrationNumber() {
+        return registrationNumber;
+    }
+
+    public void setRegistrationNumber(String registrationNumber) {
+        this.registrationNumber = registrationNumber;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

@@ -76,6 +76,7 @@ public class UserController {
         m.put("name", user.getName());
         m.put("role", user.getRole().name());
         m.put("active", user.isActive());
+        m.put("forcePasswordChange", user.isForcePasswordChange());
         m.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
         m.put("dashboard", user.getDashboardView());
         m.put("permissions", user.getPermissions());
@@ -83,6 +84,8 @@ public class UserController {
         if (user instanceof Student s) {
             m.put("roomNumber", s.getRoomNumber());
             m.put("hostelBlock", s.getHostelBlock());
+            m.put("registrationNumber", s.getRegistrationNumber());
+            m.put("phone", s.getPhone());
         } else if (user instanceof MaintenanceStaff ms) {
             m.put("specialization", ms.getSpecialization() != null ? ms.getSpecialization().name() : null);
             m.put("specializationDisplay", ms.getSpecialization() != null ? ms.getSpecialization().getDisplayName() : null);

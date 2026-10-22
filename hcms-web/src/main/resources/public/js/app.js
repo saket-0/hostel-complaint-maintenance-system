@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial session check
     const user = await checkAuth();
     if (user) {
+        if (user.forcePasswordChange) {
+            promptForcePasswordChange(user, '');
+        }
         const currentHash = window.location.hash;
         if (!currentHash || currentHash === '#/login' || currentHash === '#/register' || currentHash === '#/dashboard') {
             window.location.hash = DEFAULT_ROUTE[user.role] || '#/login';
@@ -90,9 +93,89 @@ function setupAuthFormToggles() {
     }
 }
 
+function promptForcePasswordChange(user, prefilledPassword) {
+    const modal = document.getElementById('forcePasswordChangeModal');
+    if (!modal) return;
+    const errEl = document.getElementById('forcePasswordError');
+    if (errEl) errEl.style.display = 'none';
+
+    const currInput = document.getElementById('forceCurrentPassword');
+    const newInput = document.getElementById('forceNewPassword');
+    const confirmInput = document.getElementById('forceConfirmPassword');
+    const form = document.getElementById('forcePasswordChangeForm');
+
+    if (currInput) currInput.value = prefilledPassword || '';
+    if (newInput) newInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+
+    modal.style.display = 'flex';
+
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            if (errEl) errEl.style.display = 'none';
+
+            const currentPassword = currInput ? currInput.value : '';
+            const newPassword = newInput ? newInput.value : '';
+            const confirmPassword = confirmInput ? confirmInput.value : '';
+
+            if (!currentPassword) {
+                if (errEl) {
+                    errEl.textContent = 'Please enter your current temporary password.';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            if (!newPassword || newPassword.length < 6) {
+                if (errEl) {
+                    errEl.textContent = 'New password must be at least 6 characters.';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                if (errEl) {
+                    errEl.textContent = 'Passwords do not match.';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                await apiRequest('/auth/change-password', {
+                    method: 'POST',
+                    body: { currentPassword, newPassword }
+                });
+                modal.style.display = 'none';
+                user.forcePasswordChange = false;
+                showToast('Password changed successfully! Welcome to HCMS.', 'success');
+                const targetRoute = DEFAULT_ROUTE[user.role] || '#/login';
+                if (window.location.hash === targetRoute) {
+                    await handleRoute();
+                } else {
+                    window.location.hash = targetRoute;
+                }
+            } catch (err) {
+                if (errEl) {
+                    errEl.textContent = err.message || 'Failed to update password.';
+                    errEl.style.display = 'block';
+                } else {
+                    showToast(err.message, 'error');
+                }
+            }
+        };
+    }
+}
+
 async function executeLogin(email, password) {
     try {
         const user = await login(email, password);
+        if (user && user.forcePasswordChange) {
+            promptForcePasswordChange(user, password);
+            return;
+        }
         const targetRoute = DEFAULT_ROUTE[user.role] || '#/login';
         if (window.location.hash === targetRoute) {
             await handleRoute();
@@ -487,7 +570,7 @@ function renderNavLinks(role, activeHash, container) {
             <a href="#/complaints" class="nav-link ${activeHash === '#/complaints' ? 'active' : ''}">${getIcon('chart', 'nav-icon', 15)} All Complaints</a>
             <a href="#/history" class="nav-link ${activeHash === '#/history' ? 'active' : ''}">${getIcon('history', 'nav-icon', 15)} Audit History</a>
             <a href="#/analytics" class="nav-link ${activeHash === '#/analytics' ? 'active' : ''}">${getIcon('chart', 'nav-icon', 15)} Analytics</a>
-            <a href="#/staff" class="nav-link ${activeHash === '#/staff' ? 'active' : ''}">${getIcon('users', 'nav-icon', 15)} Staff</a>
+            <a href="#/staff" class="nav-link ${activeHash === '#/staff' ? 'active' : ''}">${getIcon('users', 'nav-icon', 15)} Users</a>
         `;
     }
 

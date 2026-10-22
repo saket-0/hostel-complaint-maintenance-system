@@ -80,11 +80,14 @@ public class AuthController {
         response.put("role", user.getRole().name());
         response.put("dashboard", user.getDashboardView());
         response.put("permissions", user.getPermissions());
+        response.put("forcePasswordChange", user.isForcePasswordChange());
 
         // Role-specific fields via polymorphism
         if (user instanceof edu.vit.hcms.core.model.Student s) {
             response.put("roomNumber", s.getRoomNumber());
             response.put("hostelBlock", s.getHostelBlock());
+            response.put("registrationNumber", s.getRegistrationNumber());
+            response.put("phone", s.getPhone());
         } else if (user instanceof edu.vit.hcms.core.model.Admin a) {
             response.put("adminRole", a.getAdminRole());
         } else if (user instanceof edu.vit.hcms.core.model.MaintenanceStaff ms) {
