@@ -125,7 +125,7 @@ Eliminate priority data discrepancies and functional UI bugs across HCMS, stream
 
 ---
 
-### [ ] P4 Staff Task Management & History Unification
+### [x] P4 Staff Task Management & History Unification
 - **Type**: UI
 - **Files to touch**:
   - `hcms-web/src/main/resources/public/js/staff.js`
@@ -198,5 +198,7 @@ Eliminate priority data discrepancies and functional UI bugs across HCMS, stream
 | 2026-10-22 | P1 | Complete | Unified priority resolution via `getPriorityInfo()`, added emergency auto-escalation keywords (`flood`, `sparks`) with history audit trail, fixed `.badge` positioning and overdue styles, improved profile availability slider, restricted dev metrics footer to admin, formatted timeline statuses. Next phase (P2): use `getPriorityInfo` and `formatStatus` helpers. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `ComplaintManager.java`, `ComplaintManagerTest.java`, `admin.js`, `staff.js`, `student.js`, `history.js`, `app.js`, `toast.js`, `style.css`, `index.html` |
 | 2026-10-22 | P2 | Complete | Implemented top KPI summary strip with 1-click filter toggling and sort dropdowns, overdue row accent borders, compact location/student format, category icons, 2-line clamped descriptions, sticky bulk action bar for assignment/priority, collapsible export dropdown, duplicate detection, and top-placed staff assignment drawer with SLA countdown timer and interactive lifecycle stepper. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `admin.js`, `style.css`, `index.html` |
 | 2026-10-22 | P3 | Complete | Overhauled student complaint cards with compact progress indicator & progress bar, removed redundant student name line, deduplicated timestamps; revamped student detail drawer with assigned staff card, SLA countdown/target, and milestone guide; added 4-card KPI summary strip with formatted rating ('★ 5.0 (from N ratings)' or hidden when < 3); consolidated history into 'Closed & Ratings'; upgraded submission modal with safety hazard elevation, confirmed room with edit link, location selector (My Room vs Common Area), drag-and-drop photo dropzone with live preview, and real-time duplicate check; converted hostel block in profile modal to a validated dropdown. Next phase (P4): restructure staff task cards and merge task history. Docs updated: `docs/CODEMAP.md`. | `student.js`, `style.css`, `index.html` |
+| 2026-10-22 | P4 | Complete | Restructured staff task cards with prominent location header ('Block B · Room 410'), reporter labeling ('Reported by ...'), and student reopen reason alert box; implemented overdue and priority task sorting with visual grouping into 3 operational queues ('Reopened Tasks', 'Needs Action Now', 'In Progress'); merged completed and history views into a unified 'Task History & Completed' tab with status and search filtering, standardized relative (<7d) and absolute timestamps, student rating reviews, and distinct card hover/focus/selected states. Next phase (P5): global design system tokens, typography, WCAG AA contrast, and 360px responsive layout. Docs updated: `docs/CODEMAP.md`, `docs/LESSONS.md`. | `staff.js`, `style.css`, `index.html` |
+
 
 

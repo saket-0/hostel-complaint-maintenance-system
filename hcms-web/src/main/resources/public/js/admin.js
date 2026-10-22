@@ -9,7 +9,8 @@ import { showToast, escapeHtml } from './toast.js';
 import { openComplaintModal, closeComplaintDrawer, formatDate } from './student.js';
 import { formatExactDate, formatRelativeDate, formatDueStatus } from './dates.js';
 import { getIcon } from './icons.js';
-import { getCurrentUser, getPriorityInfo, formatStatus } from './app.js';
+import { getCurrentUser } from './auth.js';
+import { getPriorityInfo, formatStatus } from './app.js';
 
 let currentSubView = 'triage';
 

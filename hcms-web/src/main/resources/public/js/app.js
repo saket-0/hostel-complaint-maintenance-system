@@ -3,6 +3,7 @@
  * Manages single-level role navigation, hash routing, view switching, and lifecycle initialization.
  */
 import { checkAuth, login, register, logout, getCurrentUser, setCurrentUser } from './auth.js';
+export { getCurrentUser } from './auth.js';
 import { apiRequest } from './api.js';
 import { showToast } from './toast.js';
 import { initStudentView } from './student.js';
@@ -89,6 +90,20 @@ function setupAuthFormToggles() {
     }
 }
 
+async function executeLogin(email, password) {
+    try {
+        const user = await login(email, password);
+        const targetRoute = DEFAULT_ROUTE[user.role] || '#/login';
+        if (window.location.hash === targetRoute) {
+            await handleRoute();
+        } else {
+            window.location.hash = targetRoute;
+        }
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
 function setupAuthFormSubmissions() {
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -96,13 +111,7 @@ function setupAuthFormSubmissions() {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
-
-            try {
-                const user = await login(email, password);
-                window.location.hash = DEFAULT_ROUTE[user.role] || '#/login';
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+            await executeLogin(email, password);
         };
 
         // Quick test login buttons
@@ -111,17 +120,13 @@ function setupAuthFormSubmissions() {
         const passwordInput = document.getElementById('loginPassword');
 
         quickBtns.forEach(btn => {
-            btn.onclick = (e) => {
+            btn.onclick = async (e) => {
                 e.preventDefault();
                 const email = btn.dataset.email;
                 const password = btn.dataset.password;
                 if (emailInput) emailInput.value = email;
                 if (passwordInput) passwordInput.value = password;
-                if (typeof loginForm.requestSubmit === 'function') {
-                    loginForm.requestSubmit();
-                } else {
-                    loginForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                }
+                await executeLogin(email, password);
             };
         });
     }

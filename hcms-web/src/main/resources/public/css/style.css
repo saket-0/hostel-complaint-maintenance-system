@@ -2859,5 +2859,352 @@ main#app {
     font-size: 0.85rem;
 }
 
+/* ==========================================================================
+   Staff Maintenance Console & Task Queue Styling (P4)
+   ========================================================================== */
+
+.staff-avail-hint {
+    font-size: 0.8rem;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+/* Staff KPI Strip */
+.staff-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.staff-kpi-card {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    background: var(--white);
+    border: 1.5px solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.staff-kpi-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--navy);
+    box-shadow: 3px 3px 0 var(--navy);
+}
+
+.staff-kpi-card.active {
+    background: #F0FDF4;
+    border-color: var(--teal);
+    box-shadow: 3px 3px 0 var(--teal);
+}
+
+.staff-kpi-card.kpi-reopened.active {
+    background: #FEF2F2;
+    border-color: var(--crimson);
+    box-shadow: 3px 3px 0 var(--crimson);
+}
+
+.staff-kpi-card .kpi-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--grey);
+    margin-bottom: 4px;
+}
+
+.staff-kpi-card .kpi-num {
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* Staff Queues */
+.staff-queues-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.task-queue-group {
+    background: var(--white);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--shadow-hard);
+    padding: 16px 20px;
+    border-radius: 4px;
+}
+
+.task-queue-group.queue-reopened {
+    border-color: #F87171;
+    background: #FFFAFA;
+}
+
+.task-queue-group.queue-assigned {
+    border-color: #60A5FA;
+    background: #FAFCFF;
+}
+
+.task-queue-group.queue-inprogress {
+    border-color: #2DD4BF;
+    background: #FAFFFD;
+}
+
+.task-queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.task-queue-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-queue-title-wrap h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.task-queue-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.badge-reopened {
+    background: #FEE2E2;
+    color: #991B1B;
+    border-color: #F87171;
+}
+
+.badge-assigned {
+    background: #DBEAFE;
+    color: #1E40AF;
+    border-color: #93C5FD;
+}
+
+.badge-inprogress {
+    background: #CCFBF1;
+    color: #115E59;
+    border-color: #5EEAD4;
+}
+
+.task-queue-desc {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--grey);
+}
+
+.task-queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.task-queue-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--grey);
+    font-size: 0.85rem;
+    font-style: italic;
+    background: rgba(0,0,0,0.02);
+    border: 1px dashed rgba(0,0,0,0.12);
+    border-radius: 4px;
+}
+
+/* Staff Task Card */
+.staff-task-card {
+    background: var(--white);
+    border: 1.5px solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--border-color);
+    padding: 14px 16px;
+    border-radius: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.staff-task-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--navy);
+    border-color: var(--navy);
+}
+
+.staff-task-card:focus,
+.staff-task-card:focus-visible {
+    outline: 3px solid var(--navy);
+    outline-offset: 2px;
+}
+
+.staff-task-card.selected {
+    background-color: #F8FAFC;
+    border-color: var(--navy);
+    border-width: 2px;
+    box-shadow: 4px 4px 0 var(--navy);
+}
+
+.staff-task-card.is-overdue {
+    border-left: 5px solid var(--crimson);
+    background-color: #FFFBFB;
+}
+
+.staff-task-card.is-reopened {
+    border-left: 5px solid var(--amber);
+    background-color: #FFFDF7;
+}
+
+/* Location Header */
+.task-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.task-location-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.05rem;
+    color: var(--navy);
+}
+
+.task-location-pin {
+    display: inline-flex;
+    color: var(--crimson);
+}
+
+.task-location-text {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.task-meta-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Reporter & Ticket ID Row */
+.task-reporter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dotted #CBD5E1;
+}
+
+.task-reporter {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.task-reporter-phone {
+    color: var(--grey);
+    margin-left: 4px;
+}
+
+/* Reopen Reason Alert Box */
+.task-reopen-alert {
+    background: #FFF1F2;
+    border: 1.5px solid #FDA4AF;
+    border-left: 4px solid var(--crimson);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+}
+
+.task-reopen-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9F1239;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.task-reopen-reason {
+    margin: 0;
+    color: #881337;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Card Body & Description */
+.task-card-body {
+    margin-bottom: 12px;
+}
+
+.task-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.task-description {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--black);
+}
+
+/* Footer & Actions */
+.task-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #E2E8F0;
+    font-size: 0.85rem;
+}
+
+.task-sla-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #64748B;
+}
+
+.task-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
 
 

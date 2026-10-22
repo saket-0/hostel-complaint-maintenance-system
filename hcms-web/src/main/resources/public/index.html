@@ -612,18 +612,99 @@
 
         <!-- Staff Dashboard -->
         <section id="staffDashboard" class="dashboard" style="display:none;">
-            <div class="dashboard-header">
-                <h2 id="staffDashboardTitle">My Tasks</h2>
+            <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
+                <div>
+                    <h2 id="staffDashboardTitle">Maintenance Console</h2>
+                    <p class="text-muted" style="font-size:0.9rem; margin-top:2px;">Manage assigned maintenance tickets, track work status, and view history</p>
+                </div>
                 <div class="staff-availability" id="staffAvailabilityContainer">
-                    <label class="toggle-label">
-                        <span>Available</span>
-                        <input type="checkbox" id="availabilityToggle" checked>
+                    <label class="toggle-label" title="Toggle your availability. Off pauses automatic assignment to you.">
+                        <span>Duty Availability</span>
+                        <input type="checkbox" id="availabilityToggle" checked aria-describedby="staffAvailTooltip">
                         <span class="toggle-slider"></span>
                     </label>
+                    <span class="staff-avail-hint text-muted" id="staffAvailTooltip" title="Off pauses automatic assignment to you">(Off pauses auto-assignment)</span>
                 </div>
             </div>
-            <div id="staffTasks" class="complaints-list">
-                <div class="loading">Loading tasks...</div>
+
+            <!-- Staff Sub-tabs: Active vs History -->
+            <div class="filter-bar staff-tab-bar" style="margin-bottom: 16px; display:flex; gap:8px;">
+                <button type="button" class="filter-chip active" id="tabStaffActive">
+                    Active Tasks <span class="chip-count" id="countStaffActive">0</span>
+                </button>
+                <button type="button" class="filter-chip" id="tabStaffCompleted">
+                    Task History &amp; Completed <span class="chip-count" id="countStaffCompleted">0</span>
+                </button>
+            </div>
+
+            <!-- Panel 1: Active Tasks (Grouped Queues) -->
+            <div id="staffActivePanel">
+                <!-- KPI Summary Strip / Quick Queue Filter -->
+                <div class="staff-kpi-strip" id="staffKpiStrip">
+                    <button type="button" class="staff-kpi-card active" data-queue="all" id="kpiStaffAll">
+                        <span class="kpi-label">All Active</span>
+                        <strong class="kpi-num" id="kpiValAll">0</strong>
+                    </button>
+                    <button type="button" class="staff-kpi-card kpi-reopened" data-queue="reopened" id="kpiStaffReopened">
+                        <span class="kpi-label">⚠️ Reopened</span>
+                        <strong class="kpi-num text-red" id="kpiValReopened">0</strong>
+                    </button>
+                    <button type="button" class="staff-kpi-card kpi-action" data-queue="assigned" id="kpiStaffAssigned">
+                        <span class="kpi-label">⚡ Needs Action</span>
+                        <strong class="kpi-num text-navy" id="kpiValAssigned">0</strong>
+                    </button>
+                    <button type="button" class="staff-kpi-card kpi-progress" data-queue="inprogress" id="kpiStaffInProgress">
+                        <span class="kpi-label">🔄 In Progress</span>
+                        <strong class="kpi-num text-teal" id="kpiValInProgress">0</strong>
+                    </button>
+                    <button type="button" class="staff-kpi-card kpi-overdue" data-queue="overdue" id="kpiStaffOverdue">
+                        <span class="kpi-label">🚨 Overdue</span>
+                        <strong class="kpi-num text-red" id="kpiValOverdue">0</strong>
+                    </button>
+                </div>
+
+                <!-- Active Tasks Toolbar: Search & Sort -->
+                <div class="staff-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                    <div class="staff-search-wrapper" style="flex:1; min-width:240px;">
+                        <input type="text" id="staffSearchInput" class="form-control" placeholder="Search by room, block, student, description, or ID...">
+                    </div>
+                    <div class="staff-sort-wrapper">
+                        <label for="staffSortSelect" class="sr-only">Sort Tasks</label>
+                        <select id="staffSortSelect" class="form-control staff-sort-select">
+                            <option value="overdue-priority">⚡ Overdue &amp; High Priority First (Default)</option>
+                            <option value="due-soonest">⏱ Due Soonest</option>
+                            <option value="newest">📅 Newest First</option>
+                            <option value="oldest">⏳ Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Tasks Container (renders the 3 grouped queues) -->
+                <div id="staffTasks" class="staff-queues-container">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+
+            <!-- Panel 2: Unified History & Completed -->
+            <div id="staffHistoryPanel" style="display:none;">
+                <div class="staff-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                    <div class="staff-search-wrapper" style="flex:1; min-width:240px;">
+                        <input type="text" id="staffHistorySearchInput" class="form-control" placeholder="Search resolved tasks by ID, room, student, or keyword...">
+                    </div>
+                    <div class="staff-history-filters">
+                        <label for="staffHistoryStatusFilter" class="sr-only">Status Filter</label>
+                        <select id="staffHistoryStatusFilter" class="form-control">
+                            <option value="ALL">All Completed (Resolved &amp; Closed)</option>
+                            <option value="RESOLVED">Resolved Only</option>
+                            <option value="CLOSED">Closed Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Completed Tasks List -->
+                <div id="staffHistoryTasks" class="complaints-list">
+                    <div class="loading">Loading task history...</div>
+                </div>
             </div>
         </section>
 
