@@ -146,19 +146,55 @@
                 <button class="btn btn-primary" id="newComplaintBtn">+ New Complaint</button>
             </div>
 
+            <!-- 4 Clickable Summary Cards -->
+            <div class="student-counters-grid" id="studentCountersGrid">
+                <div class="student-counter-card active" data-filter="OPEN" tabindex="0" role="button" aria-pressed="true" title="Click to view open complaints">
+                    <div class="counter-header">
+                        <span class="counter-title">Open Complaints</span>
+                        <span class="counter-badge badge-unassigned">Active</span>
+                    </div>
+                    <div class="counter-value" id="studentKpiOpen">0</div>
+                    <div class="counter-sub">In triage, assigned or in progress</div>
+                </div>
+                <div class="student-counter-card" data-filter="RESOLVED" tabindex="0" role="button" aria-pressed="false" title="Click to view resolved complaints awaiting review">
+                    <div class="counter-header">
+                        <span class="counter-title">Awaiting Confirmation</span>
+                        <span class="counter-badge badge-reopened">Action Required</span>
+                    </div>
+                    <div class="counter-value text-amber" id="studentKpiResolved">0</div>
+                    <div class="counter-sub">Fixed by staff — please confirm</div>
+                </div>
+                <div class="student-counter-card" data-filter="CLOSED" tabindex="0" role="button" aria-pressed="false" title="Click to view closed complaints & ratings">
+                    <div class="counter-header">
+                        <span class="counter-title">Closed Complaints</span>
+                        <span class="counter-badge badge-overdue" style="background:#E2E8F0; color:#334155;">Archived</span>
+                    </div>
+                    <div class="counter-value" id="studentKpiClosed">0</div>
+                    <div class="counter-sub">Completed & confirmed</div>
+                </div>
+                <div class="student-counter-card" data-filter="CLOSED" tabindex="0" role="button" aria-pressed="false" title="Overall service rating">
+                    <div class="counter-header">
+                        <span class="counter-title">Experience Rating</span>
+                        <span class="counter-badge badge-high" style="background:#FEF3C7; color:#92400E;">Feedback</span>
+                    </div>
+                    <div class="counter-value text-teal" id="studentKpiRating">—</div>
+                    <div class="counter-sub" id="studentKpiRatingSub">Based on closed tickets</div>
+                </div>
+            </div>
+
             <!-- Filter Chips Row -->
             <div class="filter-chips-row" id="studentFilterChips">
-                <button type="button" class="filter-chip active" data-filter="ALL">
+                <button type="button" class="filter-chip" data-filter="ALL">
                     All <span class="chip-count" id="chipCountAll">0</span>
                 </button>
-                <button type="button" class="filter-chip" data-filter="OPEN">
+                <button type="button" class="filter-chip active" data-filter="OPEN">
                     Open <span class="chip-count" id="chipCountOpen">0</span>
                 </button>
                 <button type="button" class="filter-chip" data-filter="RESOLVED">
                     Resolved <span class="chip-count" id="chipCountResolved">0</span>
                 </button>
                 <button type="button" class="filter-chip" data-filter="CLOSED">
-                    Closed <span class="chip-count" id="chipCountClosed">0</span>
+                    Closed & Ratings <span class="chip-count" id="chipCountClosed">0</span>
                 </button>
             </div>
 
@@ -224,6 +260,18 @@
                         <input type="text" id="triageSearchInput" placeholder="Search ID, student, room, description..." class="toolbar-search">
                     </div>
                     <div class="toolbar-actions-wrap">
+                        <div class="toolbar-sort-wrap">
+                            <label for="triageSortSelect" class="sr-only">Sort triage queue</label>
+                            <select id="triageSortSelect" class="toolbar-select" aria-label="Sort triage queue">
+                                <option value="default">Sort: Default (Overdue → Due Date → Priority)</option>
+                                <option value="due_asc">Sort: Due Date (Soonest first)</option>
+                                <option value="due_desc">Sort: Due Date (Latest first)</option>
+                                <option value="priority_desc">Sort: Priority (High to Low)</option>
+                                <option value="priority_asc">Sort: Priority (Low to High)</option>
+                                <option value="created_desc">Sort: Created (Newest first)</option>
+                                <option value="created_asc">Sort: Created (Oldest first)</option>
+                            </select>
+                        </div>
                         <div class="popover-wrapper">
                             <button class="btn btn-outline btn-sm popover-toggle" id="triageFiltersBtn" type="button" aria-expanded="false">
                                 <span>Filters</span>
@@ -308,12 +356,60 @@
                     <h2>All Complaints</h2>
                 </div>
 
+                <!-- 4 Clickable Summary Counter Cards for All Complaints -->
+                <div class="triage-counters-grid" id="allCountersGrid">
+                    <div class="triage-counter-card" data-counter="overdue" tabindex="0" role="button" aria-pressed="false" title="Click to filter overdue complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">Overdue</span>
+                            <span class="counter-badge badge-overdue">Late SLA</span>
+                        </div>
+                        <div class="counter-value text-red" id="allCountOverdue">-</div>
+                        <div class="counter-sub">Past SLA deadline</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="unassigned" tabindex="0" role="button" aria-pressed="false" title="Click to filter unassigned complaints">
+                        <div class="counter-header">
+                            <span class="counter-title">Unassigned</span>
+                            <span class="counter-badge badge-unassigned">Action Required</span>
+                        </div>
+                        <div class="counter-value" id="allCountUnassigned">-</div>
+                        <div class="counter-sub">Needs staff assignment</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="in_progress" tabindex="0" role="button" aria-pressed="false" title="Click to filter complaints in progress">
+                        <div class="counter-header">
+                            <span class="counter-title">In Progress</span>
+                            <span class="counter-badge badge-inprogress">Active</span>
+                        </div>
+                        <div class="counter-value text-cyan" id="allCountInProgress">-</div>
+                        <div class="counter-sub">Work underway by staff</div>
+                    </div>
+                    <div class="triage-counter-card" data-counter="resolved_today" tabindex="0" role="button" aria-pressed="false" title="Click to filter complaints resolved today">
+                        <div class="counter-header">
+                            <span class="counter-title">Resolved Today</span>
+                            <span class="counter-badge badge-resolved">Completed</span>
+                        </div>
+                        <div class="counter-value text-teal" id="allCountResolvedToday">-</div>
+                        <div class="counter-sub">Resolved tickets</div>
+                    </div>
+                </div>
+
                 <!-- Compact Toolbar for All Complaints -->
                 <div class="triage-toolbar">
                     <div class="toolbar-search-wrap">
                         <input type="text" id="allSearchInput" placeholder="Search ID, student, room, description..." class="toolbar-search">
                     </div>
                     <div class="toolbar-actions-wrap">
+                        <div class="toolbar-sort-wrap">
+                            <label for="allSortSelect" class="sr-only">Sort complaints</label>
+                            <select id="allSortSelect" class="toolbar-select" aria-label="Sort all complaints">
+                                <option value="default">Sort: Default (Overdue → Due Date → Priority)</option>
+                                <option value="due_asc">Sort: Due Date (Soonest first)</option>
+                                <option value="due_desc">Sort: Due Date (Latest first)</option>
+                                <option value="priority_desc">Sort: Priority (High to Low)</option>
+                                <option value="priority_asc">Sort: Priority (Low to High)</option>
+                                <option value="created_desc">Sort: Created (Newest first)</option>
+                                <option value="created_asc">Sort: Created (Oldest first)</option>
+                            </select>
+                        </div>
                         <div class="popover-wrapper">
                             <button class="btn btn-outline btn-sm popover-toggle" id="allFiltersBtn" type="button" aria-expanded="false">
                                 <span>Filters</span>
@@ -384,8 +480,16 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="btn btn-outline btn-sm" id="exportCsvBtn">Export CSV</button>
-                        <button class="btn btn-outline btn-sm" id="exportAuditCsvBtn">Export Audit CSV</button>
+                        <div class="dropdown-wrapper">
+                            <button class="btn btn-outline btn-sm dropdown-toggle" id="exportDropdownBtn" type="button" aria-expanded="false" title="Export data as CSV">
+                                <span>Export</span>
+                                <span class="dropdown-caret">▾</span>
+                            </button>
+                            <div class="dropdown-menu" id="exportDropdownMenu" style="display:none;">
+                                <button class="dropdown-item" id="exportCsvBtn" type="button">Complaints (CSV)</button>
+                                <button class="dropdown-item" id="exportAuditCsvBtn" type="button">Audit Trail (CSV)</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="active-chips-row" id="allActiveChips"></div>
@@ -606,6 +710,28 @@
                         Report a maintenance issue in your hostel room or common area.
                     </p>
                     <form id="complaintForm">
+                        <!-- Location Selection -->
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>Location</label>
+                            <div class="location-toggle-group">
+                                <label class="location-radio-pill active" id="locTypeRoomLabel">
+                                    <input type="radio" name="complaintLocationType" id="locTypeRoom" value="ROOM" checked>
+                                    <span>🏠 My Room</span>
+                                </label>
+                                <label class="location-radio-pill" id="locTypeCommonLabel">
+                                    <input type="radio" name="complaintLocationType" id="locTypeCommon" value="COMMON">
+                                    <span>🏢 Common Area</span>
+                                </label>
+                            </div>
+                            <div id="roomLocationMeta" class="location-confirmed-bar" style="margin-top: 6px;">
+                                <span>📍 Assigned: <strong id="confirmedLocationFull">Loading...</strong></span>
+                                <a href="#" id="editProfileRoomLink" style="margin-left: 8px; font-size: 0.8rem; color: var(--navy); text-decoration: underline;">Change in Profile</a>
+                            </div>
+                            <div id="commonAreaGroup" style="display:none; margin-top: 8px;">
+                                <input type="text" id="commonAreaDesc" class="form-control" placeholder="Specify common area (e.g. 2nd Floor Water Cooler, Block B Reading Hall)" maxlength="120" style="font-size: 0.88rem;">
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label for="complaintCategory">Category</label>
                             <select id="complaintCategory" required>
@@ -619,19 +745,54 @@
                                 <option value="OTHER">Other</option>
                             </select>
                         </div>
+
+                        <!-- Real-time Duplicate Warning Banner -->
+                        <div id="duplicateComplaintWarning" class="alert-duplicate" style="display: none;"></div>
+
                         <div class="form-group">
                             <label for="complaintDesc">Description</label>
                             <textarea id="complaintDesc" rows="4" placeholder="Describe the issue in detail (min 10 characters)..." minlength="10" maxlength="2000" required></textarea>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                                <span class="help-text" style="font-size: 0.8rem; color: var(--grey);">Be specific (e.g. room location, symptoms).</span>
+                                <span class="help-text" style="font-size: 0.8rem; color: var(--grey);">Be specific (e.g. symptoms, exact location).</span>
                                 <span class="char-count" id="charCount" style="font-size: 0.8rem; font-weight: 700;">0 / 2000</span>
                             </div>
                         </div>
+
+                        <!-- Safety Risk Elevation Toggle -->
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label class="safety-risk-card" id="safetyRiskCard">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="complaintSafetyRisk" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.88rem; color: #0B1F4A;">⚠️ Urgent Safety Hazard?</div>
+                                        <div style="font-size: 0.76rem; color: #64748B;">Sparks, gas leak, flooding, fire hazard, or broken door lock</div>
+                                    </div>
+                                </div>
+                                <span class="badge badge-high" id="safetyRiskBadge" style="display: none; font-size: 0.72rem;">24h High SLA</span>
+                            </label>
+                        </div>
+
+                        <!-- Modern Drag & Drop Photo Upload -->
                         <div class="form-group">
                             <label for="complaintPhoto">Photo of Damage <span class="text-muted" style="font-weight: normal; font-size: 0.85rem;">(Optional)</span></label>
-                            <input type="file" id="complaintPhoto" accept="image/png, image/jpeg" style="padding: 8px; border: 1.5px solid var(--border-color); width: 100%; border-radius: 4px;">
-                            <span class="help-text" style="font-size: 0.75rem; color: var(--grey);">Supports JPG or PNG up to 5MB.</span>
+                            <div class="dropzone" id="photoDropzone">
+                                <div class="dropzone-content" id="dropzonePrompt">
+                                    <span style="font-size: 1.6rem;">📷</span>
+                                    <div style="font-weight: 600; font-size: 0.88rem; color: #0B1F4A; margin-top: 4px;">Drag & drop photo here or <span style="color: var(--cyan); text-decoration: underline;">browse</span></div>
+                                    <div style="font-size: 0.75rem; color: var(--grey); margin-top: 2px;">Supports JPG, PNG, WEBP up to 5MB</div>
+                                </div>
+                                <input type="file" id="complaintPhoto" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                                <div id="photoPreviewWrap" class="photo-preview-wrap" style="display: none;">
+                                    <img id="photoPreviewImg" alt="Attachment preview" class="photo-preview-img">
+                                    <div class="photo-preview-meta">
+                                        <span id="photoPreviewName" style="font-weight: 600; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;"></span>
+                                        <span id="photoPreviewSize" style="color: var(--grey); font-size: 0.75rem;"></span>
+                                    </div>
+                                    <button type="button" class="btn-remove-photo" id="removePhotoBtn" title="Remove photo" aria-label="Remove photo">✕</button>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="form-actions" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="button" class="btn btn-outline" id="cancelComplaint">Cancel</button>
                             <button type="submit" class="btn btn-primary" id="submitComplaintBtn">Submit Complaint</button>
@@ -706,7 +867,7 @@
                     <div class="profile-header-meta">
                         <h3 id="profileModalTitle" class="modal-title" style="margin: 0;">User Profile</h3>
                         <div class="profile-meta-badges">
-                            <span class="badge" id="profileModalRoleBadge">ROLE</span>
+                            <span class="badge badge-role" id="profileModalRoleBadge">ROLE</span>
                             <span class="badge badge-success" id="profileModalStatusBadge">Active</span>
                         </div>
                     </div>
@@ -729,8 +890,28 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="profileHostelBlock">Hostel Block</label>
-                                <input type="text" id="profileHostelBlock" class="form-control" placeholder="e.g. A" maxlength="5">
-                                <small class="form-hint">Block letter (e.g., A, B, C)</small>
+                                <select id="profileHostelBlock" class="form-control" required>
+                                    <option value="">Select Block...</option>
+                                    <option value="A">Block A</option>
+                                    <option value="B">Block B</option>
+                                    <option value="C">Block C</option>
+                                    <option value="D">Block D</option>
+                                    <option value="E">Block E</option>
+                                    <option value="F">Block F</option>
+                                    <option value="G">Block G</option>
+                                    <option value="H">Block H</option>
+                                    <option value="J">Block J</option>
+                                    <option value="K">Block K</option>
+                                    <option value="L">Block L</option>
+                                    <option value="M">Block M</option>
+                                    <option value="N">Block N</option>
+                                    <option value="P">Block P</option>
+                                    <option value="Q">Block Q</option>
+                                    <option value="R">Block R</option>
+                                    <option value="S">Block S</option>
+                                    <option value="T">Block T</option>
+                                </select>
+                                <small class="form-hint">Hostel block assignment</small>
                             </div>
                             <div class="form-group">
                                 <label for="profileRoomNumber">Room Number</label>
@@ -750,7 +931,10 @@
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="toggle-label" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
                                 <span>Duty Availability Status</span>
-                                <input type="checkbox" id="profileAvailable" class="toggle-checkbox" style="width: auto;">
+                                <div style="display: flex; align-items: center;">
+                                    <input type="checkbox" id="profileAvailable">
+                                    <span class="toggle-slider"></span>
+                                </div>
                             </label>
                             <small class="form-hint">When unavailable, automated complaint assignment is paused</small>
                         </div>

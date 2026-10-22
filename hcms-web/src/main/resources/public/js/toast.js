@@ -31,6 +31,10 @@ export function showToast(message, type = 'info', duration = 3000) {
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '⚠️';
 
+    toast.style.cursor = 'pointer';
+    toast.title = 'Click to dismiss';
+    toast.onclick = () => dismissToast();
+
     toast.innerHTML = `<span class="toast-icon">${icon}</span> <span class="toast-message">${escapeHtml(message)}</span>`;
     container.appendChild(toast);
 

@@ -8,10 +8,10 @@
 - **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/ComplaintDao.java`** (745 lines)
   - Key methods: save() ~L151, findById() ~L196, update() ~L222, search() ~L299, isDuplicate() ~L447, staffWorkload() ~L628
 - **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/UserDao.java`** (485 lines)
+- **`hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`** (466 lines)
+  - Key methods: registerComplaint() ~L95, assignComplaint() ~L152, autoAssignComplaint() ~L195, updateComplaintStatus() ~L227, reopenComplaint() ~L272
 - **`hcms-web/src/main/java/edu/vit/hcms/web/controller/AdminController.java`** (464 lines)
   - Key methods: triage() ~L49, listComplaints() ~L188, assign() ~L239, autoAssign() ~L250, listStaff() ~L260, analytics() ~L298
-- **`hcms-service/src/main/java/edu/vit/hcms/service/complaint/ComplaintManager.java`** (450 lines)
-  - Key methods: registerComplaint() ~L95, assignComplaint() ~L152, autoAssignComplaint() ~L195, updateComplaintStatus() ~L227, reopenComplaint() ~L272
 - **`hcms-persistence/src/main/java/edu/vit/hcms/persistence/dao/SupportDao.java`** (384 lines)
   - Key methods: saveHistory() ~L34, findHistoryByComplaintId() ~L58, saveFeedback() ~L124, saveComment() ~L182, saveNotification() ~L237
 

@@ -346,6 +346,12 @@ async function saveProfileChanges() {
         currentProfileData = updatedUser;
         setCurrentUser(updatedUser);
         updateProfileMenu(updatedUser);
+        if (updatedUser && updatedUser.role === 'STAFF') {
+            const availToggle = document.getElementById('availabilityToggle');
+            if (availToggle && typeof updatedUser.available === 'boolean') {
+                availToggle.checked = updatedUser.available;
+            }
+        }
 
         showToast(resp.message || 'Profile updated successfully!', 'success');
 
@@ -411,7 +417,7 @@ async function handleRoute() {
     // Show authenticated chrome
     if (authView) authView.style.display = 'none';
     if (navbar) navbar.style.display = 'flex';
-    if (footer) footer.style.display = 'block';
+    if (footer) footer.style.display = (user.role === 'ADMIN') ? 'block' : 'none';
 
     // Populate user info in profile menu
     updateProfileMenu(user);
@@ -481,4 +487,47 @@ function renderNavLinks(role, activeHash, container) {
     }
 
     container.innerHTML = linksHtml;
+}
+
+/**
+ * Normalizes priority values (strings 'HIGH', 'MEDIUM', 'LOW' or integers 1, 2, 3)
+ * into a standard object with label, CSS class, numeric level, and enum key.
+ *
+ * @param {string|number} priority
+ * @returns {{ label: string, class: string, level: number, key: string }}
+ */
+export function getPriorityInfo(priority) {
+    if (priority === null || priority === undefined || priority === '') {
+        return { label: 'Low', class: 'priority-low', level: 3, key: 'LOW' };
+    }
+    const p = String(priority).trim().toUpperCase();
+    if (p === 'HIGH' || p === '1') {
+        return { label: 'High', class: 'priority-high', level: 1, key: 'HIGH' };
+    }
+    if (p === 'MEDIUM' || p === '2') {
+        return { label: 'Medium', class: 'priority-medium', level: 2, key: 'MEDIUM' };
+    }
+    if (p === 'LOW' || p === '3') {
+        return { label: 'Low', class: 'priority-low', level: 3, key: 'LOW' };
+    }
+    return { label: 'Low', class: 'priority-low', level: 3, key: 'LOW' };
+}
+
+/**
+ * Normalizes ComplaintStatus enum strings into user-friendly title case strings.
+ *
+ * @param {string} status
+ * @returns {string} e.g. "In Progress", "Resolved"
+ */
+export function formatStatus(status) {
+    if (!status) return '';
+    const map = {
+        'NEW': 'New',
+        'ASSIGNED': 'Assigned',
+        'IN_PROGRESS': 'In Progress',
+        'RESOLVED': 'Resolved',
+        'CLOSED': 'Closed',
+        'REOPENED': 'Reopened'
+    };
+    return map[String(status).trim().toUpperCase()] || status;
 }

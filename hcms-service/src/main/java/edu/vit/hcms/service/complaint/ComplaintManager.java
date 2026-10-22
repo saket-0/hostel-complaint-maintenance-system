@@ -55,8 +55,8 @@ public class ComplaintManager {
 
     /** High-priority keywords that auto-elevate to HIGH priority. */
     private static final Set<String> HIGH_PRIORITY_KEYWORDS = Set.of(
-            "short circuit", "sparking", "flooding", "fire", "smoke", "electrocution",
-            "burst", "emergency", "dangerous", "hazard", "gas leak", "sewage"
+            "short circuit", "sparks", "sparking", "flood", "flooding", "fire", "smoke",
+            "electrocution", "burst", "emergency", "dangerous", "hazard", "gas leak", "sewage"
     );
 
     public ComplaintManager(ComplaintDao complaintDao, SupportDao supportDao,
@@ -306,7 +306,23 @@ public class ComplaintManager {
         int slaHours = getSlaHours(newPriority);
         complaint.setDueBy(complaint.getCreatedDate().plusHours(slaHours));
 
-        complaintDao.update(complaint);
+        txManager.begin();
+        try {
+            complaintDao.update(complaint);
+            ComplaintHistory history = new ComplaintHistory(
+                    complaintId,
+                    complaint.getStatus(),
+                    complaint.getStatus(),
+                    adminId,
+                    "Priority changed from " + oldPriority + " to " + newPriority
+            );
+            supportDao.saveHistory(history);
+            txManager.commit();
+        } catch (Exception e) {
+            txManager.rollback();
+            throw e;
+        }
+
         lruCache.put(complaintId, complaint);
         log.info("Priority updated for {}: {} -> {}", complaintId, oldPriority, newPriority);
         return complaint;

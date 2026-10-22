@@ -6,15 +6,17 @@
  */
 import { apiRequest } from './api.js';
 import { showToast, escapeHtml } from './toast.js';
-import { openComplaintModal } from './student.js';
+import { openComplaintModal, closeComplaintDrawer, formatDate } from './student.js';
 import { formatExactDate, formatRelativeDate, formatDueStatus } from './dates.js';
 import { getIcon } from './icons.js';
+import { getCurrentUser, getPriorityInfo, formatStatus } from './app.js';
 
 let currentSubView = 'triage';
 
 const triageState = {
     page: 0,
     size: 25,
+    sort: 'default',
     counter: '',
     q: '',
     status: '',
@@ -28,6 +30,8 @@ const triageState = {
 const allState = {
     page: 0,
     size: 25,
+    sort: 'default',
+    counter: '',
     q: '',
     status: '',
     category: '',
@@ -37,10 +41,97 @@ const allState = {
     toDate: ''
 };
 
+const selectedComplaintIds = new Set();
+
 let statusChart = null;
 let categoryChart = null;
 let priorityChart = null;
 let trendChart = null;
+
+function getCategoryIcon(cat) {
+    switch ((cat || '').toUpperCase()) {
+        case 'ELECTRICAL': return getIcon('zap', 'cat-icon', 14);
+        case 'PLUMBING': return getIcon('droplet', 'cat-icon', 14);
+        case 'WIFI': return getIcon('wifi', 'cat-icon', 14);
+        case 'CARPENTRY':
+        case 'AC':
+        case 'CLEANING':
+        default: return getIcon('wrench', 'cat-icon', 14);
+    }
+}
+
+function detectDuplicates(complaints) {
+    const dupMap = new Map();
+    complaints.forEach(c => {
+        const block = (c.hostelBlock || c.studentHostelBlock || '').trim().toUpperCase();
+        const room = (c.roomNumber || c.studentRoomNumber || '').trim().toUpperCase();
+        const cat = (c.category || '').trim().toUpperCase();
+        if (block && room && cat) {
+            const key = `${cat}::${block}::${room}`;
+            if (!dupMap.has(key)) dupMap.set(key, []);
+            dupMap.get(key).push(c.complaintId);
+        }
+    });
+    return dupMap;
+}
+
+function sortComplaints(complaints, sortMode = 'default') {
+    const isOverdue = (c) => Boolean(c.overdue || (c.dueBy && new Date(c.dueBy) < new Date() && c.status !== 'RESOLVED' && c.status !== 'CLOSED'));
+    const getPriVal = (p) => {
+        const pInfo = getPriorityInfo(p);
+        return pInfo.key === 'HIGH' ? 1 : (pInfo.key === 'MEDIUM' ? 2 : 3);
+    };
+
+    const list = [...complaints];
+    return list.sort((a, b) => {
+        switch (sortMode) {
+            case 'due_asc': {
+                const ta = a.dueBy ? new Date(a.dueBy).getTime() : Infinity;
+                const tb = b.dueBy ? new Date(b.dueBy).getTime() : Infinity;
+                return ta - tb;
+            }
+            case 'due_desc': {
+                const ta = a.dueBy ? new Date(a.dueBy).getTime() : -Infinity;
+                const tb = b.dueBy ? new Date(b.dueBy).getTime() : -Infinity;
+                return tb - ta;
+            }
+            case 'priority_desc': {
+                return getPriVal(a.priority) - getPriVal(b.priority);
+            }
+            case 'priority_asc': {
+                return getPriVal(b.priority) - getPriVal(a.priority);
+            }
+            case 'created_asc': {
+                const ta = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+                const tb = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+                return ta - tb;
+            }
+            case 'created_desc': {
+                const ta = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+                const tb = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+                return tb - ta;
+            }
+            case 'default':
+            default: {
+                const oa = isOverdue(a) ? 0 : 1;
+                const ob = isOverdue(b) ? 0 : 1;
+                if (oa !== ob) return oa - ob;
+
+                const ta = a.dueBy ? new Date(a.dueBy).getTime() : Infinity;
+                const tb = b.dueBy ? new Date(b.dueBy).getTime() : Infinity;
+                if (ta !== tb) return ta - tb;
+
+                const pa = getPriVal(a.priority);
+                const pb = getPriVal(b.priority);
+                if (pa !== pb) return pa - pb;
+
+                const ca = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+                const cb = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+                return cb - ca;
+            }
+        }
+    });
+}
 
 export function initAdminView(subroute = 'triage') {
     currentSubView = subroute;
@@ -159,6 +250,16 @@ function setupTriageToolbar() {
             };
         }
     }
+
+    // Sort select for Triage
+    const triageSortSelect = document.getElementById('triageSortSelect');
+    if (triageSortSelect) {
+        triageSortSelect.value = triageState.sort;
+        triageSortSelect.onchange = () => {
+            triageState.sort = triageSortSelect.value;
+            loadTriageBoard();
+        };
+    }
 }
 
 function updateTriageChips() {
@@ -184,7 +285,7 @@ function updateTriageChips() {
     }
     if (triageState.priority) {
         filterCount++;
-        const pLabel = triageState.priority === '1' ? 'High' : triageState.priority === '2' ? 'Medium' : triageState.priority === '3' ? 'Low' : triageState.priority;
+        const pLabel = getPriorityInfo(triageState.priority).label;
         chips.push(`<span class="filter-chip">Priority: ${escapeHtml(pLabel)} <button class="chip-remove" data-clear="priority" aria-label="Clear priority filter">✕</button></span>`);
     }
     if (triageState.hostelBlock) {
@@ -227,7 +328,6 @@ function updateTriageChips() {
                     if (searchInput) searchInput.value = '';
                 } else {
                     triageState[key] = '';
-                    // Reset field in popover
                     const popMap = {
                         status: 'triagePopStatus',
                         category: 'triagePopCategory',
@@ -278,6 +378,49 @@ function updateTriageChips() {
 }
 
 function setupAllComplaintsToolbar() {
+    // 4 Clickable Summary Counter Cards for All Complaints
+    const allCards = document.querySelectorAll('#allCountersGrid .triage-counter-card');
+    allCards.forEach(card => {
+        card.onclick = () => {
+            const counterType = card.getAttribute('data-counter');
+            if (allState.counter === counterType) {
+                allState.counter = '';
+                allState.status = '';
+                allState.fromDate = '';
+                allCards.forEach(c => {
+                    c.classList.remove('active');
+                    c.setAttribute('aria-pressed', 'false');
+                });
+            } else {
+                allState.counter = counterType;
+                allCards.forEach(c => {
+                    c.classList.remove('active');
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                card.classList.add('active');
+                card.setAttribute('aria-pressed', 'true');
+
+                if (counterType === 'overdue') {
+                    allState.status = '';
+                    allState.sort = 'due_asc';
+                    const sortEl = document.getElementById('allSortSelect');
+                    if (sortEl) sortEl.value = 'due_asc';
+                } else if (counterType === 'unassigned') {
+                    allState.status = 'NEW';
+                } else if (counterType === 'in_progress') {
+                    allState.status = 'IN_PROGRESS';
+                } else if (counterType === 'resolved_today') {
+                    allState.status = 'RESOLVED';
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    allState.fromDate = todayStr;
+                }
+            }
+            allState.page = 0;
+            updateAllChips();
+            loadAdminComplaints();
+        };
+    });
+
     const searchInput = document.getElementById('allSearchInput');
     if (searchInput) {
         searchInput.oninput = debounce(() => {
@@ -286,6 +429,16 @@ function setupAllComplaintsToolbar() {
             updateAllChips();
             loadAdminComplaints();
         }, 300);
+    }
+
+    // Sort select for All Complaints
+    const allSortSelect = document.getElementById('allSortSelect');
+    if (allSortSelect) {
+        allSortSelect.value = allState.sort;
+        allSortSelect.onchange = () => {
+            allState.sort = allSortSelect.value;
+            loadAdminComplaints();
+        };
     }
 
     const filterBtn = document.getElementById('allFiltersBtn');
@@ -343,6 +496,11 @@ function updateAllChips() {
     let filterCount = 0;
     const chips = [];
 
+    if (allState.counter) {
+        filterCount++;
+        const label = allState.counter.replace('_', ' ').toUpperCase();
+        chips.push(`<span class="filter-chip">Queue: ${escapeHtml(label)} <button class="chip-remove" data-clear="counter" aria-label="Clear queue filter">✕</button></span>`);
+    }
     if (allState.status) {
         filterCount++;
         chips.push(`<span class="filter-chip">Status: ${escapeHtml(allState.status)} <button class="chip-remove" data-clear="status">✕</button></span>`);
@@ -353,7 +511,7 @@ function updateAllChips() {
     }
     if (allState.priority) {
         filterCount++;
-        const pLabel = allState.priority === '1' ? 'High' : allState.priority === '2' ? 'Medium' : allState.priority === '3' ? 'Low' : allState.priority;
+        const pLabel = getPriorityInfo(allState.priority).label;
         chips.push(`<span class="filter-chip">Priority: ${escapeHtml(pLabel)} <button class="chip-remove" data-clear="priority">✕</button></span>`);
     }
     if (allState.hostelBlock) {
@@ -384,7 +542,15 @@ function updateAllChips() {
         chipsEl.querySelectorAll('.chip-remove').forEach(btn => {
             btn.onclick = () => {
                 const key = btn.getAttribute('data-clear');
-                if (key === 'q') {
+                if (key === 'counter') {
+                    allState.counter = '';
+                    allState.status = '';
+                    allState.fromDate = '';
+                    document.querySelectorAll('#allCountersGrid .triage-counter-card').forEach(c => {
+                        c.classList.remove('active');
+                        c.setAttribute('aria-pressed', 'false');
+                    });
+                } else if (key === 'q') {
                     allState.q = '';
                     const searchInput = document.getElementById('allSearchInput');
                     if (searchInput) searchInput.value = '';
@@ -410,6 +576,7 @@ function updateAllChips() {
         const clearAllBtn = document.getElementById('allClearAllChips');
         if (clearAllBtn) {
             clearAllBtn.onclick = () => {
+                allState.counter = '';
                 allState.q = '';
                 allState.status = '';
                 allState.category = '';
@@ -421,6 +588,10 @@ function updateAllChips() {
 
                 const searchInput = document.getElementById('allSearchInput');
                 if (searchInput) searchInput.value = '';
+                document.querySelectorAll('#allCountersGrid .triage-counter-card').forEach(c => {
+                    c.classList.remove('active');
+                    c.setAttribute('aria-pressed', 'false');
+                });
                 ['allPopStatus', 'allPopCategory', 'allPopPriority', 'allPopBlock', 'allPopFromDate', 'allPopToDate'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
@@ -435,9 +606,28 @@ function updateAllChips() {
 }
 
 function setupCsvExport() {
+    const dropdownBtn = document.getElementById('exportDropdownBtn');
+    const dropdownMenu = document.getElementById('exportDropdownMenu');
+    if (dropdownBtn && dropdownMenu) {
+        dropdownBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownMenu.style.display === 'flex';
+            dropdownMenu.style.display = isOpen ? 'none' : 'flex';
+            dropdownBtn.setAttribute('aria-expanded', !isOpen);
+        };
+
+        document.addEventListener('click', (e) => {
+            if (dropdownMenu.style.display === 'flex' && !dropdownMenu.contains(e.target) && e.target !== dropdownBtn) {
+                dropdownMenu.style.display = 'none';
+                dropdownBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
     const exportBtn = document.getElementById('exportCsvBtn');
     if (exportBtn) {
         exportBtn.onclick = async () => {
+            if (dropdownMenu) dropdownMenu.style.display = 'none';
             try {
                 const csvData = await apiRequest('/admin/export.csv');
                 const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
@@ -458,6 +648,7 @@ function setupCsvExport() {
     const exportAuditBtn = document.getElementById('exportAuditCsvBtn');
     if (exportAuditBtn) {
         exportAuditBtn.onclick = async () => {
+            if (dropdownMenu) dropdownMenu.style.display = 'none';
             try {
                 const csvData = await apiRequest('/admin/export-audit.csv');
                 const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
@@ -476,8 +667,8 @@ function setupCsvExport() {
     }
 }
 
-function renderComplaintsTable(complaints, wrapper, onRefresh) {
-    if (!complaints || complaints.length === 0) {
+function renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext = 'triage') {
+    if (!rawComplaints || rawComplaints.length === 0) {
         wrapper.innerHTML = `
             <div class="empty-state" style="padding: 40px 20px; text-align: center;">
                 <div class="empty-icon" style="margin-bottom: 12px; color: var(--grey);">${getIcon('inbox', '', 40)}</div>
@@ -488,11 +679,42 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
         return;
     }
 
-    let html = `
+    const sortMode = tableContext === 'triage' ? triageState.sort : allState.sort;
+    const complaints = sortComplaints(rawComplaints, sortMode);
+    const dupMap = detectDuplicates(complaints);
+
+    const isAllSelected = complaints.length > 0 && complaints.every(c => selectedComplaintIds.has(c.complaintId));
+
+    let html = '';
+
+    // Bulk Action Bar if 1 or more items selected
+    if (selectedComplaintIds.size > 0) {
+        html += `
+            <div class="bulk-action-bar" id="adminBulkBar">
+                <span class="bulk-count"><strong>${selectedComplaintIds.size}</strong> complaint(s) selected</span>
+                <div class="bulk-buttons">
+                    <button class="btn btn-primary btn-sm" id="bulkAutoAssignBtn" type="button" title="Auto-assign selected complaints based on category and staff availability">🤖 Auto-Assign Selected</button>
+                    <button class="btn btn-outline btn-sm" id="bulkManualAssignBtn" type="button" style="color:var(--white); border-color:var(--white);">Assign Staff...</button>
+                    <select class="bulk-priority-select" id="bulkPrioritySelect" aria-label="Set priority for selected complaints">
+                        <option value="">Set Priority...</option>
+                        <option value="1">High Priority</option>
+                        <option value="2">Medium Priority</option>
+                        <option value="3">Low Priority</option>
+                    </select>
+                    <button class="btn btn-text btn-sm" id="bulkClearBtn" type="button" style="color:#CBD5E1; text-decoration:underline;">Deselect All</button>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th style="width: 36px; text-align: center;">
+                            <input type="checkbox" id="adminSelectAllCb" class="table-checkbox" ${isAllSelected ? 'checked' : ''} aria-label="Select all complaints on current page">
+                        </th>
                         <th style="white-space: nowrap;">ID</th>
                         <th>Priority</th>
                         <th>Category</th>
@@ -508,20 +730,31 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
     `;
 
     complaints.forEach(c => {
-        const pLabel = c.priority === 1 ? 'High' : c.priority === 2 ? 'Medium' : 'Low';
-        const pClass = c.priority === 1 ? 'priority-high' : c.priority === 2 ? 'priority-medium' : 'priority-low';
-        const blockVal = c.hostelBlock || c.studentHostelBlock || '';
-        const roomVal = c.roomNumber || c.studentRoomNumber || '';
-        const locationText = (blockVal || roomVal)
-            ? `${escapeHtml(blockVal)}${blockVal && roomVal ? ' - ' : ''}${escapeHtml(roomVal)}`
-            : '<span style="color:var(--grey); font-style:italic;">N/A</span>';
-        const studentMeta = c.studentName
-            ? `<div style="font-size:0.78rem; font-weight:600; color:var(--navy); margin-top:3px; display:flex; align-items:center; gap:4px;" title="${escapeHtml(c.studentEmail || '')}">
-                <span>👤</span> <span>${escapeHtml(c.studentName)}</span>
-               </div>`
-            : '';
-        const isOverdue = c.overdue || (c.dueBy && new Date(c.dueBy) < new Date() && c.status !== 'RESOLVED' && c.status !== 'CLOSED');
+        const pInfo = getPriorityInfo(c.priority);
+        const pLabel = pInfo.label;
+        const pClass = pInfo.class;
+        const blockVal = (c.hostelBlock || c.studentHostelBlock || '').trim();
+        const roomVal = (c.roomNumber || c.studentRoomNumber || '').trim();
         
+        let locString = '';
+        if (blockVal && roomVal) {
+            locString = `${blockVal}-${roomVal}`;
+        } else if (blockVal || roomVal) {
+            locString = blockVal || roomVal;
+        }
+
+        const locationDisplay = locString ? escapeHtml(locString) : '<span style="color:var(--grey); font-style:italic;">N/A</span>';
+        const studentName = c.studentName ? escapeHtml(c.studentName) : '';
+        const isOverdue = Boolean(c.overdue || (c.dueBy && new Date(c.dueBy) < new Date() && c.status !== 'RESOLVED' && c.status !== 'CLOSED'));
+        const isSelected = selectedComplaintIds.has(c.complaintId);
+
+        // Duplicate check
+        const dupKey = `${(c.category || '').trim().toUpperCase()}::${blockVal.toUpperCase()}::${roomVal.toUpperCase()}`;
+        const dupList = (blockVal && roomVal && c.category) ? dupMap.get(dupKey) : null;
+        const isDuplicate = dupList && dupList.length > 1;
+        const otherDupId = isDuplicate ? dupList.find(id => id !== c.complaintId) : null;
+
+        // Staff display
         let staffDisplay = '<span style="color:var(--grey); font-style:italic;">Unassigned</span>';
         if (c.staffName || c.assignedStaffName) {
             const name = c.staffName || c.assignedStaffName;
@@ -529,17 +762,13 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
             staffDisplay = `<strong>${escapeHtml(name)}</strong>${spec ? ` <span style="font-size:0.8rem; color:var(--grey);">(${escapeHtml(spec)})</span>` : ''}`;
         }
 
-        // Contextual action buttons per Phase 3:
-        // - NEW and unassigned: primary "Assign" and secondary "Auto-assign"
-        // - ASSIGNED or IN_PROGRESS: small "Reassign" link only
-        // - REOPENED: highlighted "Assign" (needs attention)
-        // - RESOLVED or CLOSED: no assignment actions
+        // Action buttons
         let actionsHtml = '';
         if (c.status === 'NEW' && (!c.assignedStaffId && !c.staffId)) {
             actionsHtml = `
                 <div style="display:flex; gap:6px; justify-content:flex-end;">
                     <button class="btn btn-primary btn-sm btn-assign" data-id="${c.complaintId}" data-cat="${c.category}">Assign</button>
-                    <button class="btn btn-outline btn-sm btn-auto" data-id="${c.complaintId}">Auto</button>
+                    <button class="btn btn-outline btn-sm btn-auto" data-id="${c.complaintId}" title="Automatically assign to the best available staff based on specialization and workload">Auto-assign</button>
                 </div>
             `;
         } else if (c.status === 'REOPENED') {
@@ -558,24 +787,45 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
             actionsHtml = `<span style="color:var(--grey); font-size:0.85rem;">—</span>`;
         }
 
+        // Status badge representation
+        let statusBadgeHtml = '';
+        if (c.status === 'NEW') {
+            statusBadgeHtml = `<span class="status-badge status-NEW"><span class="status-dot"></span> New</span>`;
+        } else {
+            statusBadgeHtml = `<span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>`;
+        }
+
         html += `
-            <tr class="complaint-row" data-id="${c.complaintId}" style="cursor: pointer;">
+            <tr class="complaint-row ${isOverdue ? 'row-overdue' : ''} ${isSelected ? 'row-selected' : ''}" data-id="${c.complaintId}" style="cursor: pointer;">
+                <td style="text-align: center;" onclick="event.stopPropagation();">
+                    <input type="checkbox" class="complaint-select-cb" data-id="${c.complaintId}" ${isSelected ? 'checked' : ''} aria-label="Select complaint ${c.complaintId}">
+                </td>
                 <td data-label="ID" style="white-space: nowrap;">
                     <a href="#" class="complaint-link font-mono" data-id="${c.complaintId}">${escapeHtml(c.complaintId)}</a>
                 </td>
                 <td data-label="Priority">
                     <span class="priority-badge ${pClass}">${escapeHtml(pLabel)}</span>
                 </td>
-                <td data-label="Category">${escapeHtml(c.categoryDisplay || c.category)}</td>
-                <td data-label="Description" style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.description)}">
-                    ${escapeHtml(c.description)}
+                <td data-label="Category">
+                    <span class="category-cell-wrap">
+                        ${getCategoryIcon(c.category)}
+                        <span>${escapeHtml(c.categoryDisplay || c.category)}</span>
+                    </span>
+                    ${isDuplicate ? `<span class="badge badge-duplicate" title="Potential duplicate of ${escapeHtml(otherDupId)} (same room & category)">⚠️ Dup</span>` : ''}
                 </td>
-                <td data-label="Location">
-                    <div style="font-weight:700;">${locationText}</div>
-                    ${studentMeta}
+                <td data-label="Description">
+                    <div class="table-desc-cell" title="${escapeHtml(c.description)}">
+                        ${escapeHtml(c.description)}
+                    </div>
+                </td>
+                <td data-label="Location & Student">
+                    <div class="compact-loc-student" title="Hostel ${escapeHtml(blockVal || 'Block')}, Room ${escapeHtml(roomVal || 'Room')} · ${studentName || 'Student'}">
+                        <span class="loc-val">${locationDisplay}</span>
+                        ${studentName ? `<span class="meta-dot">·</span><span class="student-val">${studentName}</span>` : ''}
+                    </div>
                 </td>
                 <td data-label="Status" style="white-space: nowrap;">
-                    <span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>
+                    ${statusBadgeHtml}
                     ${isOverdue ? '<span class="badge badge-overdue" style="margin-left:4px;">OVERDUE</span>' : ''}
                 </td>
                 <td data-label="Assigned Staff">${staffDisplay}</td>
@@ -595,16 +845,108 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
 
     wrapper.innerHTML = html;
 
-    // Attach listeners
+    // Attach row click listeners for detail drawer
     wrapper.querySelectorAll('.complaint-row').forEach(row => {
         row.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-assign') || e.target.closest('.btn-auto')) return;
+            if (e.target.closest('.btn-assign') || e.target.closest('.btn-auto') || e.target.closest('input[type="checkbox"]')) return;
             e.preventDefault();
             const id = row.getAttribute('data-id');
-            openComplaintModal(id);
+            openAdminComplaintDrawer(id, onRefresh);
         });
     });
 
+    // Checkbox listeners
+    const selectAllCb = wrapper.querySelector('#adminSelectAllCb');
+    if (selectAllCb) {
+        selectAllCb.addEventListener('change', (e) => {
+            const checked = e.target.checked;
+            complaints.forEach(c => {
+                if (checked) {
+                    selectedComplaintIds.add(c.complaintId);
+                } else {
+                    selectedComplaintIds.delete(c.complaintId);
+                }
+            });
+            renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext);
+        });
+    }
+
+    wrapper.querySelectorAll('.complaint-select-cb').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const id = cb.getAttribute('data-id');
+            if (e.target.checked) {
+                selectedComplaintIds.add(id);
+            } else {
+                selectedComplaintIds.delete(id);
+            }
+            renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext);
+        });
+    });
+
+    // Bulk action handlers
+    const bulkAutoBtn = wrapper.querySelector('#bulkAutoAssignBtn');
+    if (bulkAutoBtn) {
+        bulkAutoBtn.onclick = async () => {
+            const ids = Array.from(selectedComplaintIds);
+            if (ids.length === 0) return;
+            bulkAutoBtn.disabled = true;
+            bulkAutoBtn.textContent = 'Auto-assigning...';
+            try {
+                await Promise.allSettled(ids.map(id => apiRequest(`/admin/complaints/${id}/auto-assign`, { method: 'POST' })));
+                showToast(`Auto-assigned ${ids.length} complaint(s) successfully!`, 'success');
+                selectedComplaintIds.clear();
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast('Bulk auto-assign error: ' + err.message, 'error');
+                bulkAutoBtn.disabled = false;
+                bulkAutoBtn.textContent = '🤖 Auto-Assign Selected';
+            }
+        };
+    }
+
+    const bulkManualBtn = wrapper.querySelector('#bulkManualAssignBtn');
+    if (bulkManualBtn) {
+        bulkManualBtn.onclick = () => {
+            const ids = Array.from(selectedComplaintIds);
+            if (ids.length === 0) return;
+            // Open assign modal targeting the first item, refreshing all on completion
+            openAssignModal(ids[0], null, () => {
+                selectedComplaintIds.clear();
+                if (typeof onRefresh === 'function') onRefresh();
+            });
+        };
+    }
+
+    const bulkPrioritySelect = wrapper.querySelector('#bulkPrioritySelect');
+    if (bulkPrioritySelect) {
+        bulkPrioritySelect.onchange = async () => {
+            const val = parseInt(bulkPrioritySelect.value, 10);
+            if (!val) return;
+            const ids = Array.from(selectedComplaintIds);
+            if (ids.length === 0) return;
+            try {
+                await Promise.allSettled(ids.map(id => apiRequest(`/admin/complaints/${id}/priority`, {
+                    method: 'PUT',
+                    body: { priority: val }
+                })));
+                showToast(`Updated priority for ${ids.length} complaint(s)!`, 'success');
+                selectedComplaintIds.clear();
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast('Bulk priority update error: ' + err.message, 'error');
+            }
+        };
+    }
+
+    const bulkClearBtn = wrapper.querySelector('#bulkClearBtn');
+    if (bulkClearBtn) {
+        bulkClearBtn.onclick = () => {
+            selectedComplaintIds.clear();
+            renderComplaintsTable(rawComplaints, wrapper, onRefresh, tableContext);
+        };
+    }
+
+    // Individual action buttons
     wrapper.querySelectorAll('.btn-assign').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -627,6 +969,436 @@ function renderComplaintsTable(complaints, wrapper, onRefresh) {
             }
         });
     });
+}
+
+/**
+ * Optimized Admin Complaint Detail Drawer.
+ * Includes top-placed staff assignment, SLA countdown timer,
+ * interactive lifecycle stepper, potential duplicate alert, and timeline auditing.
+ */
+export async function openAdminComplaintDrawer(complaintId, onRefresh) {
+    const modal = document.getElementById('complaintModal');
+    const detailEl = document.getElementById('complaintDetail');
+    const closeBtn = document.getElementById('closeModal');
+    const overlay = document.getElementById('drawerOverlay') || modal?.querySelector('.modal-overlay');
+
+    if (!modal || !detailEl) return;
+
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    detailEl.innerHTML = '<div class="loading">Loading complaint details...</div>';
+
+    if (closeBtn) closeBtn.onclick = closeComplaintDrawer;
+    if (overlay) overlay.onclick = closeComplaintDrawer;
+
+    try {
+        const [complaint, historyRes, commentsRes, staffRes] = await Promise.all([
+            apiRequest(`/complaints/${complaintId}`),
+            apiRequest(`/complaints/${complaintId}/history`),
+            apiRequest(`/complaints/${complaintId}/comments`),
+            apiRequest('/admin/staff?activeOnly=true').catch(() => ({ staff: [] }))
+        ]);
+
+        const historyList = (historyRes && Array.isArray(historyRes.history))
+            ? historyRes.history
+            : (Array.isArray(historyRes) ? historyRes : (complaint && Array.isArray(complaint.history) ? complaint.history : []));
+
+        const commentsList = (commentsRes && Array.isArray(commentsRes.comments))
+            ? commentsRes.comments
+            : (Array.isArray(commentsRes) ? commentsRes : (complaint && Array.isArray(complaint.comments) ? complaint.comments : []));
+
+        const staffList = (staffRes && Array.isArray(staffRes.staff)) ? staffRes.staff : (Array.isArray(staffRes) ? staffRes : []);
+
+        renderAdminDetailDrawer(complaint, historyList, commentsList, staffList, onRefresh);
+    } catch (err) {
+        detailEl.innerHTML = `<div class="toast toast-error">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+function renderAdminDetailDrawer(c, history, comments, staffList, onRefresh) {
+    const detailEl = document.getElementById('complaintDetail');
+    if (!detailEl) return;
+
+    const priInfo = getPriorityInfo(c.priority);
+    const blockVal = c.studentHostelBlock || c.hostelBlock || '';
+    const roomVal = c.studentRoomNumber || c.roomNumber || '';
+    const locText = (blockVal && roomVal) ? `Block ${blockVal} · Room ${roomVal}` : (blockVal || roomVal || 'Unspecified');
+
+    // SLA Countdown calculation
+    let slaTimerHtml = '';
+    const dueTime = c.dueBy ? new Date(c.dueBy).getTime() : null;
+    const now = Date.now();
+
+    if (c.status === 'RESOLVED' || c.status === 'CLOSED') {
+        slaTimerHtml = `
+            <div class="drawer-sla-timer" style="background:#F0FDF4; border-color:#BBF7D0; color:#166534;">
+                <span>✅ <strong>Resolution Completed</strong> · Ticket is closed/resolved</span>
+                <span class="sla-timer-countdown">Resolved</span>
+            </div>
+        `;
+    } else if (dueTime) {
+        if (now > dueTime) {
+            const diffMs = now - dueTime;
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            slaTimerHtml = `
+                <div class="drawer-sla-timer overdue">
+                    <span>🚨 <strong>SLA Breached</strong> · Target was ${formatExactDate(c.dueBy)}</span>
+                    <span class="sla-timer-countdown">Overdue by ${hours > 0 ? `${hours}h ` : ''}${mins}m</span>
+                </div>
+            `;
+        } else {
+            const diffMs = dueTime - now;
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            slaTimerHtml = `
+                <div class="drawer-sla-timer">
+                    <span>⏱️ <strong>SLA Target</strong> · Target is ${formatExactDate(c.dueBy)}</span>
+                    <span class="sla-timer-countdown">Due in ${hours > 0 ? `${hours}h ` : ''}${mins}m</span>
+                </div>
+            `;
+        }
+    }
+
+    // Top-placed Staff Assignment Card
+    let staffAssignmentCard = '';
+    if (!c.staffId && !c.assignedStaffId) {
+        staffAssignmentCard = `
+            <div class="drawer-assignment-card unassigned">
+                <div class="drawer-assignment-info">
+                    <div class="drawer-assignment-title">Staff Assignment · Action Required</div>
+                    <div class="drawer-assignment-name" style="color: #B45309;">⚠️ Unassigned Complaint</div>
+                </div>
+                <div class="drawer-assignment-actions">
+                    <select id="drawerStaffSelect" class="toolbar-select" style="font-size:0.8rem; padding:4px 8px;">
+                        <option value="">Select staff...</option>
+                        ${staffList.map(s => `<option value="${s.userId}">${escapeHtml(s.name)} (${escapeHtml(s.specializationDisplay || s.specialization || 'General')})</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary btn-sm" id="drawerAssignBtn" disabled>Assign</button>
+                    <button class="btn btn-outline btn-sm" id="drawerAutoAssignBtn" title="Auto-assign based on specialization and workload">🤖 Auto-Assign</button>
+                </div>
+            </div>
+        `;
+    } else {
+        const staffName = c.assignedStaffName || c.staffName || `Staff #${c.staffId}`;
+        const staffSpec = c.assignedStaffSpecialization || 'Maintenance Specialist';
+        staffAssignmentCard = `
+            <div class="drawer-assignment-card">
+                <div class="drawer-assignment-info">
+                    <div class="drawer-assignment-title">Assigned Staff</div>
+                    <div class="drawer-assignment-name">👤 ${escapeHtml(staffName)} <span style="font-size:0.8rem; color:var(--grey); font-weight:normal;">(${escapeHtml(staffSpec)})</span></div>
+                </div>
+                <div class="drawer-assignment-actions">
+                    <button class="btn btn-outline btn-sm" id="drawerReassignToggleBtn">Reassign...</button>
+                    <div id="drawerReassignWrap" style="display:none; align-items:center; gap:6px;">
+                        <select id="drawerReassignSelect" class="toolbar-select" style="font-size:0.8rem; padding:4px 8px;">
+                            <option value="">Select new staff...</option>
+                            ${staffList.map(s => `<option value="${s.userId}">${escapeHtml(s.name)} (${escapeHtml(s.specializationDisplay || s.specialization || 'General')})</option>`).join('')}
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="drawerReassignSubmitBtn" disabled>Save</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Interactive Lifecycle Stepper
+    const stepOrder = ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+    const currentStepIdx = stepOrder.indexOf(c.status);
+    const isReopened = c.status === 'REOPENED';
+
+    const stepperHtml = `
+        <div class="interactive-stepper">
+            <div class="stepper-step ${currentStepIdx >= 0 && !isReopened ? (currentStepIdx > 0 ? 'completed' : 'active') : ''}">
+                <div class="stepper-node">${currentStepIdx > 0 && !isReopened ? '✓' : '1'}</div>
+                <div class="stepper-label">New</div>
+            </div>
+            <div class="stepper-step ${isReopened ? 'reopened' : (currentStepIdx >= 1 ? (currentStepIdx > 1 ? 'completed' : 'active') : '')}">
+                <div class="stepper-node">${isReopened ? '!' : (currentStepIdx > 1 ? '✓' : '2')}</div>
+                <div class="stepper-label">${isReopened ? 'Reopened' : 'Assigned'}</div>
+            </div>
+            <div class="stepper-step ${currentStepIdx >= 2 && !isReopened ? (currentStepIdx > 2 ? 'completed' : 'active') : ''}">
+                <div class="stepper-node">${currentStepIdx > 2 && !isReopened ? '✓' : '3'}</div>
+                <div class="stepper-label">In Progress</div>
+            </div>
+            <div class="stepper-step ${currentStepIdx >= 3 && !isReopened ? (currentStepIdx > 3 ? 'completed' : 'active') : ''}">
+                <div class="stepper-node">${currentStepIdx > 3 && !isReopened ? '✓' : '4'}</div>
+                <div class="stepper-label">Resolved</div>
+            </div>
+            <div class="stepper-step ${currentStepIdx === 4 ? 'completed' : ''}">
+                <div class="stepper-node">${currentStepIdx === 4 ? '✓' : '5'}</div>
+                <div class="stepper-label">Closed</div>
+            </div>
+        </div>
+    `;
+
+    // Action buttons
+    const allowed = c.allowedActions || [];
+    let actionButtonsHtml = '';
+    const actionBtns = [];
+    if (allowed.includes('CLOSE')) {
+        actionBtns.push('<button class="btn btn-teal btn-sm" id="btnAdminActionClose">Close Complaint</button>');
+    }
+    if (allowed.includes('REOPEN')) {
+        actionBtns.push('<button class="btn btn-amber btn-sm" id="btnAdminActionReopen">Reopen Complaint</button>');
+    }
+    if (actionBtns.length > 0) {
+        actionButtonsHtml = `<div class="form-actions" style="margin-top: 14px; display:flex; gap:8px;">${actionBtns.join('')}</div>`;
+    }
+
+    // Student Info Card
+    const studentInfoHtml = c.studentName ? `
+        <div class="student-detail-card" style="margin: 12px 0;">
+            <div class="student-detail-header">
+                <span class="student-detail-title"><span>👤</span> Student Details</span>
+                <span class="student-badge">Reporter</span>
+            </div>
+            <div class="student-detail-grid">
+                <div class="student-detail-item">
+                    <span class="student-detail-label">Name</span>
+                    <span class="student-detail-value">${escapeHtml(c.studentName)}</span>
+                </div>
+                <div class="student-detail-item">
+                    <span class="student-detail-label">Location</span>
+                    <span class="student-detail-value"><span class="meta-tag">🏢 ${escapeHtml(locText)}</span></span>
+                </div>
+                ${c.studentEmail ? `
+                    <div class="student-detail-item" style="grid-column: 1 / -1;">
+                        <span class="student-detail-label">Email</span>
+                        <span class="student-detail-value"><a href="mailto:${escapeHtml(c.studentEmail)}" style="color:var(--navy); text-decoration:underline;">${escapeHtml(c.studentEmail)}</a></span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    ` : '';
+
+    // Audit Timeline
+    let timelineHtml = '<div class="timeline">';
+    if (history && history.length > 0) {
+        history.forEach(h => {
+            const author = h.changedByName ? ` • ${escapeHtml(h.changedByName)}` : '';
+            timelineHtml += `
+                <div class="timeline-item">
+                    <div class="timeline-time">${formatDate(h.changedAt)}${author}</div>
+                    <div class="timeline-title">${escapeHtml(h.oldStatus ? `${formatStatus(h.oldStatus)} ➔ ${formatStatus(h.newStatus)}` : formatStatus(h.newStatus))}</div>
+                    ${h.note ? `<div class="timeline-note">📝 ${escapeHtml(h.note)}</div>` : ''}
+                </div>
+            `;
+        });
+    } else {
+        timelineHtml += '<p class="text-muted">No timeline entries recorded.</p>';
+    }
+    timelineHtml += '</div>';
+
+    // Comments list
+    let commentsHtml = '<div class="comments-section" style="margin-top:20px;"><h4>💬 Internal & Student Discussion</h4><div id="commentsList">';
+    if (comments && comments.length > 0) {
+        comments.forEach(cm => {
+            commentsHtml += `
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">${escapeHtml(cm.authorName || 'User')} (${escapeHtml(cm.authorRole || 'USER')})</span>
+                        <span>${formatDate(cm.createdAt)}</span>
+                    </div>
+                    <p>${escapeHtml(cm.message)}</p>
+                </div>
+            `;
+        });
+    } else {
+        commentsHtml += '<p style="color: var(--grey); font-size: 0.85rem; margin-bottom: 10px;">No comments yet.</p>';
+    }
+    commentsHtml += `</div>
+        <form id="drawerAddCommentForm" style="display:flex; gap: 8px; margin-top: 12px;">
+            <input type="text" id="drawerCommentInput" placeholder="Add a note or reply..." required style="flex:1; padding:7px 10px; font-size:0.85rem; border:1.5px solid var(--border-color);">
+            <button type="submit" class="btn btn-outline btn-sm">Send</button>
+        </form>
+    </div>`;
+
+    detailEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border-color); padding-bottom:12px; margin-bottom:14px; padding-right:48px; flex-wrap:wrap; gap:8px;">
+            <div>
+                <span class="font-mono" style="font-weight:800; font-size:1.15rem; color:var(--navy);">${escapeHtml(c.complaintId)}</span>
+                <span style="margin-left:8px; font-size:0.85rem; color:var(--grey);">${getCategoryIcon(c.category)} ${escapeHtml(c.categoryDisplay || c.category)}</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <span style="font-size:0.75rem; font-weight:700;">Priority:</span>
+                    <select id="detailPrioritySelect" class="toolbar-select" style="font-size:0.8rem; padding:3px 6px;">
+                        <option value="1" ${priInfo.key === 'HIGH' ? 'selected' : ''}>🔴 High</option>
+                        <option value="2" ${priInfo.key === 'MEDIUM' ? 'selected' : ''}>🟠 Medium</option>
+                        <option value="3" ${priInfo.key === 'LOW' ? 'selected' : ''}>🟢 Low</option>
+                    </select>
+                </div>
+                <span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>
+            </div>
+        </div>
+
+        ${staffAssignmentCard}
+        ${slaTimerHtml}
+        ${stepperHtml}
+        ${actionButtonsHtml}
+        ${studentInfoHtml}
+
+        <div style="margin: 14px 0;">
+            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--grey); margin-bottom:4px;">Description</div>
+            <div style="font-size:0.95rem; line-height:1.5; color:var(--navy); background:#F8FAFC; padding:10px 12px; border:1px solid #E2E8F0;">
+                ${escapeHtml(c.description)}
+            </div>
+        </div>
+
+        ${c.attachments && c.attachments.length > 0 ? `
+            <div style="margin: 12px 0; padding: 10px 14px; background: #F8FAFC; border: 1.5px solid var(--border-color);">
+                <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">📷 Attachments (${c.attachments.length})</div>
+                ${c.attachments.map(att => `<div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem;"><span>📎</span><span style="font-family: var(--font-mono); font-weight: 600;">${escapeHtml(att.fileName)}</span><span style="color: var(--grey); font-size: 0.75rem;">(${Math.round((att.sizeBytes || 0) / 1024)} KB)</span></div>`).join('')}
+            </div>
+        ` : ''}
+
+        <h4 style="margin-top: 24px;">📜 Audit Timeline</h4>
+        ${timelineHtml}
+        ${commentsHtml}
+    `;
+
+    // Event bindings in drawer:
+    // 1. Priority change
+    const priSelect = document.getElementById('detailPrioritySelect');
+    if (priSelect) {
+        priSelect.onchange = async () => {
+            const newPri = parseInt(priSelect.value, 10);
+            try {
+                await apiRequest(`/admin/complaints/${c.complaintId}/priority`, {
+                    method: 'PUT',
+                    body: { priority: newPri }
+                });
+                showToast(`Priority updated for ${c.complaintId}`, 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // 2. Unassigned staff assignment
+    const staffSelect = document.getElementById('drawerStaffSelect');
+    const assignBtn = document.getElementById('drawerAssignBtn');
+    if (staffSelect && assignBtn) {
+        staffSelect.onchange = () => {
+            assignBtn.disabled = !staffSelect.value;
+        };
+        assignBtn.onclick = async () => {
+            const staffId = staffSelect.value;
+            if (!staffId) return;
+            try {
+                await apiRequest(`/admin/complaints/${c.complaintId}/assign`, {
+                    method: 'POST',
+                    body: { staffId: parseInt(staffId, 10) }
+                });
+                showToast(`Complaint assigned to staff #${staffId}`, 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    const autoAssignBtn = document.getElementById('drawerAutoAssignBtn');
+    if (autoAssignBtn) {
+        autoAssignBtn.onclick = async () => {
+            try {
+                await apiRequest(`/admin/complaints/${c.complaintId}/auto-assign`, { method: 'POST' });
+                showToast(`Complaint ${c.complaintId} auto-assigned successfully!`, 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // 3. Reassign staff toggle
+    const reassignToggleBtn = document.getElementById('drawerReassignToggleBtn');
+    const reassignWrap = document.getElementById('drawerReassignWrap');
+    const reassignSelect = document.getElementById('drawerReassignSelect');
+    const reassignSubmitBtn = document.getElementById('drawerReassignSubmitBtn');
+    if (reassignToggleBtn && reassignWrap && reassignSelect && reassignSubmitBtn) {
+        reassignToggleBtn.onclick = () => {
+            reassignWrap.style.display = reassignWrap.style.display === 'none' ? 'flex' : 'none';
+        };
+        reassignSelect.onchange = () => {
+            reassignSubmitBtn.disabled = !reassignSelect.value;
+        };
+        reassignSubmitBtn.onclick = async () => {
+            const newStaffId = reassignSelect.value;
+            if (!newStaffId) return;
+            try {
+                await apiRequest(`/admin/complaints/${c.complaintId}/assign`, {
+                    method: 'POST',
+                    body: { staffId: parseInt(newStaffId, 10) }
+                });
+                showToast(`Complaint reassigned to staff #${newStaffId}`, 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // 4. Close & Reopen buttons
+    const btnClose = document.getElementById('btnAdminActionClose');
+    if (btnClose) {
+        btnClose.onclick = async () => {
+            if (!confirm(`Are you sure you want to close complaint ${c.complaintId}?`)) return;
+            try {
+                await apiRequest(`/complaints/${c.complaintId}/close`, { method: 'POST' });
+                showToast('Complaint closed', 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    const btnReopen = document.getElementById('btnAdminActionReopen');
+    if (btnReopen) {
+        btnReopen.onclick = async () => {
+            const reason = prompt('Please enter the reason for reopening this complaint:');
+            if (!reason) return;
+            try {
+                await apiRequest(`/complaints/${c.complaintId}/reopen`, {
+                    method: 'POST',
+                    body: { reason }
+                });
+                showToast('Complaint reopened', 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+                if (typeof onRefresh === 'function') onRefresh();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
+
+    // 5. Add comment
+    const commentForm = document.getElementById('drawerAddCommentForm');
+    if (commentForm) {
+        commentForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('drawerCommentInput');
+            if (!input || !input.value.trim()) return;
+            try {
+                await apiRequest(`/complaints/${c.complaintId}/comments`, {
+                    method: 'POST',
+                    body: { message: input.value.trim() }
+                });
+                showToast('Comment posted', 'success');
+                openAdminComplaintDrawer(c.complaintId, onRefresh);
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+    }
 }
 
 function renderPagination(total, state, containerId, onPageChange) {
@@ -718,7 +1490,7 @@ export async function loadTriageBoard() {
         const complaints = data.complaints || [];
         const total = data.total || 0;
 
-        renderComplaintsTable(complaints, wrapper, () => loadTriageBoard());
+        renderComplaintsTable(complaints, wrapper, () => loadTriageBoard(), 'triage');
         renderPagination(total, triageState, 'triagePagination', () => loadTriageBoard());
     } catch (err) {
         wrapper.innerHTML = `
@@ -762,7 +1534,26 @@ export async function loadAdminComplaints() {
         const complaints = data.complaints || [];
         const total = data.total || 0;
 
-        renderComplaintsTable(complaints, wrapper, () => loadAdminComplaints());
+        // Populate 4-card summary strip for All Complaints
+        Promise.all([
+            apiRequest('/admin/analytics').catch(() => null),
+            apiRequest('/admin/triage?size=1').catch(() => null)
+        ]).then(([analytics, triage]) => {
+            if (triage && triage.counters) {
+                const elOverdue = document.getElementById('allCountOverdue');
+                const elUnassigned = document.getElementById('allCountUnassigned');
+                if (elOverdue) elOverdue.textContent = triage.counters.overdue ?? 0;
+                if (elUnassigned) elUnassigned.textContent = triage.counters.unassigned ?? 0;
+            }
+            if (analytics && analytics.byStatus) {
+                const elInProgress = document.getElementById('allCountInProgress');
+                const elResolvedToday = document.getElementById('allCountResolvedToday');
+                if (elInProgress) elInProgress.textContent = analytics.byStatus.IN_PROGRESS ?? 0;
+                if (elResolvedToday) elResolvedToday.textContent = analytics.byStatus.RESOLVED ?? 0;
+            }
+        });
+
+        renderComplaintsTable(complaints, wrapper, () => loadAdminComplaints(), 'all');
         renderPagination(total, allState, 'adminPagination', () => loadAdminComplaints());
     } catch (err) {
         wrapper.innerHTML = `

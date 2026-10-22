@@ -8,6 +8,7 @@
 import { apiRequest } from './api.js';
 import { formatDate, openComplaintModal } from './student.js';
 import { showToast, escapeHtml } from './toast.js';
+import { getPriorityInfo } from './app.js';
 
 let allHistoryItems = [];
 let currentRole = null;
@@ -151,6 +152,7 @@ function renderFilteredHistory() {
             resolutionDateHtml = `<span>🕒 Updated: ${formatDate(c.updatedDate)}</span>`;
         }
 
+        const pInfo = getPriorityInfo(c.priority);
         card.innerHTML = `
             <div class="complaint-card-header">
                 <div style="display:flex; align-items:center; gap: 8px;">
@@ -158,7 +160,7 @@ function renderFilteredHistory() {
                     ${feedbackBadge}
                 </div>
                 <div class="complaint-meta">
-                    <span class="priority-badge priority-${c.priority}">${escapeHtml(c.priority)}</span>
+                    <span class="priority-badge ${pInfo.class}">${escapeHtml(pInfo.label)}</span>
                     <span class="status-badge status-${c.status}">${escapeHtml(c.statusDisplay || c.status)}</span>
                 </div>
             </div>

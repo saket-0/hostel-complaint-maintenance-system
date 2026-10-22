@@ -287,4 +287,48 @@ class ComplaintManagerTest {
         verify(statusListener).onStatusChange(eq(c), eq(ComplaintStatus.ASSIGNED),
                 eq(ComplaintStatus.IN_PROGRESS), eq(201L), eq("Started work"));
     }
+
+    @Test
+    @DisplayName("Keywords 'sparks' and 'flood' automatically elevate priority to HIGH")
+    void testKeywordAutoPriorityNewKeywords() {
+        when(complaintDao.isDuplicate(anyLong(), any(), anyString(), anyInt())).thenReturn(false);
+        when(complaintDao.generateComplaintId()).thenReturn("HCM-2026-000002", "HCM-2026-000003");
+
+        Complaint c1 = complaintManager.registerComplaint(101L, Category.ELECTRICAL,
+                "Noticeable sparks coming from the power socket near the bed");
+        assertEquals(Priority.HIGH, c1.getPriority());
+
+        Complaint c2 = complaintManager.registerComplaint(102L, Category.PLUMBING,
+                "Severe flood in bathroom from broken pipe");
+        assertEquals(Priority.HIGH, c2.getPriority());
+    }
+
+    @Test
+    @DisplayName("updatePriority updates priority and records ComplaintHistory audit trail")
+    void testUpdatePriorityWithAuditHistory() {
+        LocalDateTime created = LocalDateTime.of(2026, 10, 20, 10, 0);
+        Complaint c = Complaint.builder()
+                .complaintId("HCM-2026-000055")
+                .studentId(101L)
+                .category(Category.CARPENTRY)
+                .description("Window latch broken")
+                .priority(Priority.LOW)
+                .status(ComplaintStatus.NEW)
+                .createdDate(created)
+                .build();
+
+        when(complaintDao.findById("HCM-2026-000055")).thenReturn(Optional.of(c));
+
+        Complaint updated = complaintManager.updatePriority("HCM-2026-000055", Priority.HIGH, 999L);
+
+        assertEquals(Priority.HIGH, updated.getPriority());
+        verify(txManager).begin();
+        verify(complaintDao).update(c);
+        verify(supportDao).saveHistory(argThat(h ->
+                "HCM-2026-000055".equals(h.getComplaintId()) &&
+                h.getChangedBy().equals(999L) &&
+                h.getNote().contains("Priority changed from LOW to HIGH")
+        ));
+        verify(txManager).commit();
+    }
 }

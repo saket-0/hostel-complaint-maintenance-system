@@ -8,6 +8,7 @@ import { showToast, escapeHtml } from './toast.js';
 import { openComplaintModal } from './student.js';
 import { formatExactDate, formatRelativeDate, formatDueStatus } from './dates.js';
 import { getIcon } from './icons.js';
+import { getPriorityInfo } from './app.js';
 
 let currentModeIsCompleted = false;
 
@@ -77,8 +78,9 @@ export async function loadStaffTasks(isCompleted = false) {
             card.style.cursor = 'pointer';
 
             const isOverdue = task.overdue ? '<span class="badge badge-overdue" style="margin-left:4px;">OVERDUE</span>' : '';
-            const pLabel = task.priority === 1 ? 'High' : task.priority === 2 ? 'Medium' : 'Low';
-            const pClass = task.priority === 1 ? 'priority-high' : task.priority === 2 ? 'priority-medium' : 'priority-low';
+            const pInfo = getPriorityInfo(task.priority);
+            const pLabel = pInfo.label;
+            const pClass = pInfo.class;
 
             const allowed = task.allowedActions || [];
             let actionHtml = '';

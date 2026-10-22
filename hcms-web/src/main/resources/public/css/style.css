@@ -437,17 +437,54 @@ a:hover {
 
 /* Badges */
 .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border-color);
+    background-color: #E2E8F0;
+    color: #0F172A;
+    vertical-align: middle;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+/* Notification count / icon badges */
+.btn-icon .badge,
+.notif-btn-wrapper .badge,
+#notifBadge,
+.badge-count {
     position: absolute;
     top: -8px;
     right: -8px;
     background-color: var(--red);
     color: var(--white);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 800;
+    font-size: 0.7rem;
     padding: 2px 6px;
     border-radius: 999px;
-    border: 1.5px solid var(--border-color);
+    display: inline-flex;
+}
+
+.badge-success {
+    background-color: #D1FAE5;
+    color: #065F46;
+    border-color: #A7F3D0;
+}
+
+.badge-danger {
+    background-color: #FEE2E2;
+    color: #991B1B;
+    border-color: #FECACA;
+}
+
+.badge-role {
+    background-color: #DBEAFE;
+    color: #1E3A8A;
+    border-color: #BFDBFE;
 }
 
 .status-badge {
@@ -487,7 +524,8 @@ a:hover {
 .priority-LOW,
 .priority-low { background-color: #D1FAE5; color: #065F46; }
 
-.overdue-badge {
+.overdue-badge,
+.badge.badge-overdue {
     background-color: var(--red);
     color: var(--white);
     padding: 2px 6px;
@@ -497,6 +535,7 @@ a:hover {
     border: 1px solid var(--border-color);
     display: inline-block;
     margin-left: 4px;
+    border-radius: 2px;
 }
 
 /* Main Container */
@@ -1377,12 +1416,13 @@ main#app {
 /* Toast Container */
 .toast-container {
     position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 24px;
+    right: 24px;
+    left: auto;
+    transform: none;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
     gap: 10px;
     z-index: 2000;
     pointer-events: none;
@@ -2129,4 +2169,695 @@ main#app {
 .user-avatar-sm {
     flex-shrink: 0;
 }
+
+/* ==========================================================================
+   Phase 2: Admin UI & Triage Workflow Enhancements
+   ========================================================================== */
+
+/* Overdue Table Row Accent & Tint */
+.data-table tbody tr.row-overdue {
+    background-color: rgba(220, 38, 38, 0.04);
+    border-left: 4px solid var(--crimson, #DC2626) !important;
+}
+
+.data-table tbody tr.row-overdue:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+}
+
+/* Compact Single-Line Location & Student */
+.compact-loc-student {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.86rem;
+}
+
+.compact-loc-student .loc-val {
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.compact-loc-student .meta-dot {
+    color: var(--grey);
+    font-weight: 400;
+}
+
+.compact-loc-student .student-val {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* Clamped 2-Line Description */
+.table-desc-cell {
+    max-width: 260px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    word-break: break-word;
+}
+
+/* Category Cell & Icons */
+.category-cell-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.cat-icon {
+    flex-shrink: 0;
+    color: var(--navy);
+}
+
+/* Duplicate Warning Badge */
+.badge-duplicate {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px dashed #D97706;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Status Badges Refinements */
+.status-badge .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    background-color: currentColor;
+}
+
+/* Toolbar Sort Select */
+.toolbar-sort-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+.toolbar-select {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1.5px solid var(--border-color);
+    background: var(--white);
+    color: var(--navy);
+    cursor: pointer;
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.toolbar-select:focus {
+    border-color: var(--navy);
+    outline: 2px solid var(--cyan);
+}
+
+/* Collapsible Dropdown Menu (Export) */
+.dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-caret {
+    font-size: 0.75rem;
+    margin-left: 4px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0 var(--border-color);
+    min-width: 170px;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-item {
+    background: none;
+    border: none;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--navy);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.1s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #F1F5F9;
+}
+
+.dropdown-item + .dropdown-item {
+    border-top: 1px solid #E2E8F0;
+}
+
+/* Bulk Action Bar */
+.bulk-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0B1F4A;
+    color: var(--white);
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0 var(--border-color);
+    flex-wrap: wrap;
+    gap: 10px;
+    animation: fadeIn 0.15s ease-in;
+}
+
+.bulk-count {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.bulk-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bulk-buttons .btn {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+}
+
+.bulk-priority-select {
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1.5px solid var(--white);
+    background: var(--white);
+    color: var(--navy);
+    border-radius: 0;
+    cursor: pointer;
+}
+
+/* Checkbox styling */
+.table-checkbox,
+.complaint-select-cb {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--navy);
+}
+
+/* ==========================================================================
+   Admin Detail Drawer Optimizations
+   ========================================================================== */
+
+/* Top-Placed Staff Assignment Card */
+.drawer-assignment-card {
+    background: #F8FAFC;
+    border: 1.5px solid var(--border-color);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.drawer-assignment-card.unassigned {
+    background: #FFFBEB;
+    border-color: #F59E0B;
+}
+
+.drawer-assignment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.drawer-assignment-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--grey);
+}
+
+.drawer-assignment-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.drawer-assignment-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* SLA Countdown Timer Banner */
+.drawer-sla-timer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #1E40AF;
+    margin-bottom: 14px;
+}
+
+.drawer-sla-timer.overdue {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    color: #991B1B;
+}
+
+.sla-timer-countdown {
+    font-family: var(--font-mono);
+    font-weight: 700;
+}
+
+/* Duplicate Alert Banner in Drawer */
+.duplicate-alert-banner {
+    background: #FFFBEB;
+    border: 1.5px dashed #D97706;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.84rem;
+    color: #92400E;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Interactive Lifecycle Stepper */
+.interactive-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    margin: 16px 0;
+    padding: 0 8px;
+}
+
+.interactive-stepper::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 24px;
+    right: 24px;
+    height: 3px;
+    background: #E2E8F0;
+    z-index: 1;
+}
+
+.stepper-step {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: var(--white);
+    padding: 0 4px;
+}
+
+.stepper-node {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #CBD5E1;
+    background: #F8FAFC;
+    color: var(--grey);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.stepper-step.completed .stepper-node {
+    background: var(--teal, #0D9488);
+    border-color: var(--teal, #0D9488);
+    color: var(--white);
+}
+
+.stepper-step.active .stepper-node {
+    background: var(--navy, #0B1F4A);
+    border-color: var(--navy, #0B1F4A);
+    color: var(--white);
+    box-shadow: 0 0 0 3px rgba(11, 31, 74, 0.2);
+}
+
+.stepper-step.reopened .stepper-node {
+    background: var(--amber, #D97706);
+    border-color: var(--amber, #D97706);
+    color: var(--white);
+}
+
+.stepper-label {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--grey);
+    text-transform: uppercase;
+}
+
+.stepper-step.active .stepper-label {
+    color: var(--navy);
+}
+
+.stepper-step.completed .stepper-label {
+    color: var(--teal);
+}
+
+/* ==========================================================================
+   Phase 3: Student Experience & Complaint Submission Redesign
+   ========================================================================== */
+
+/* Student Summary Counters Grid */
+.student-counters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.student-counter-card {
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0 var(--border-color);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    user-select: none;
+    position: relative;
+}
+
+.student-counter-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--border-color);
+}
+
+.student-counter-card.active {
+    border-color: var(--cyan);
+    background: #F0FBFC;
+    box-shadow: 4px 4px 0 var(--navy);
+    transform: translate(-1px, -1px);
+    outline: 2px solid var(--cyan);
+}
+
+/* Compact Student Card Progress Bar */
+.student-progress-wrap {
+    margin: 8px 0 10px 0;
+}
+
+.student-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.76rem;
+    color: #64748B;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.student-progress-bar {
+    height: 5px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+    display: flex;
+    width: 100%;
+}
+
+.student-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.student-progress-fill.status-NEW { width: 20%; background: #0284C7; }
+.student-progress-fill.status-ASSIGNED { width: 40%; background: #6366F1; }
+.student-progress-fill.status-IN_PROGRESS { width: 65%; background: #F59E0B; }
+.student-progress-fill.status-RESOLVED { width: 85%; background: #10B981; }
+.student-progress-fill.status-CLOSED { width: 100%; background: #0D9488; }
+.student-progress-fill.status-REOPENED { width: 70%; background: #EF4444; }
+
+/* Fixed? Confirm or Reopen Banner */
+.fixed-confirm-banner {
+    background: #F0FDF4;
+    border: 1.5px solid #86EFAC;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 10px 0 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fixed-confirm-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: #166534;
+    font-weight: 600;
+}
+
+.fixed-confirm-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Location Selector & Pill Radios */
+.location-toggle-group {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.location-radio-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: var(--white);
+    user-select: none;
+}
+
+.location-radio-pill input[type="radio"] {
+    display: none;
+}
+
+.location-radio-pill.active {
+    border-color: var(--cyan);
+    background: #F0FBFC;
+    color: var(--navy);
+    font-weight: 700;
+}
+
+.location-confirmed-bar {
+    font-size: 0.82rem;
+    color: #475569;
+    background: #F8FAFC;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #E2E8F0;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Safety Risk Toggle */
+.safety-risk-card {
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 10px 14px;
+    background: #F8FAFC;
+    transition: all 0.15s ease;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.safety-risk-card.active {
+    border-color: #EF4444;
+    background: #FEF2F2;
+}
+
+/* Modern Photo Dropzone */
+.dropzone {
+    border: 2px dashed #94A3B8;
+    border-radius: 8px;
+    padding: 18px 16px;
+    text-align: center;
+    background: #F8FAFC;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropzone:hover, .dropzone.dragover {
+    border-color: var(--cyan);
+    background: #F0FBFC;
+}
+
+.photo-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.photo-preview-img {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #E2E8F0;
+}
+
+.btn-remove-photo {
+    margin-left: auto;
+    background: none;
+    border: 1.5px solid #EF4444;
+    color: #EF4444;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn-remove-photo:hover {
+    background: #FEE2E2;
+}
+
+/* Real-time Duplicate Alert */
+.alert-duplicate {
+    background: #FFFBEB;
+    border: 1.5px solid #FCD34D;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.84rem;
+    color: #92400E;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+/* Student Detail Drawer Overhaul */
+.assigned-staff-card {
+    background: #F8FAFC;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.assigned-staff-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.assigned-staff-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #0B1F4A;
+    color: #FFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.milestone-guide {
+    background: #F1F5F9;
+    border-left: 4px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 14px;
+    margin: 14px 0;
+    font-size: 0.85rem;
+}
+
+.milestone-guide-title {
+    font-weight: 700;
+    color: #0B1F4A;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.milestone-guide-text {
+    color: #334155;
+    line-height: 1.45;
+}
+
+.resolution-target-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+
 
